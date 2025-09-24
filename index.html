@@ -1599,6 +1599,34 @@ function populateTables() {
     // --- Get Master Account Data (used for the accounts table) ---
     const accountData = createAccountSummaryData();
 
+            // --- 1. Top 20 Account Penetration Table ---
+            const accountPenetrationTable = document.getElementById('accountPenetrationTable');
+        if (accountPenetrationTable) {
+            const top20Accounts = accountData.slice(0, 20);
+            accountPenetrationTable.innerHTML = `
+                <thead>
+                    <tr>
+                        <th>Account</th>
+                        <th>Revenue YTD</th>
+                        <th>SKU Breadth</th>
+                        <th>Penetration Score</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${top20Accounts.map(acc => `
+                        <tr>
+                            <td>${acc.accountCode}</td>
+                            <td>$${acc.revenueYTD.toLocaleString('en-US', {maximumFractionDigits: 0})}</td>
+                            <td>${acc.skuBreadth} of 8</td>
+                            <td>${((acc.skuBreadth / 8) * 100).toFixed(0)}%</td>
+                            <td>${acc.status}</td>
+                        </tr>
+                    `).join('')}
+                </tbody>
+            `;
+        }
+
     // --- 1. Distributor Performance Matrix ---
     const distributorTable = document.getElementById('distributorTable');
     if (distributorTable) {
