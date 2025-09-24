@@ -1,0 +1,39 @@
+quarter,product_name,month,revenue,units,txn_count
+Q1,Ashwagandha Healthy Brain Mood & Stress,2025-01-01,3271.35,182,8
+Q1,Ashwagandha Healthy Brain Mood & Stress,2025-02-01,428.90999999999997,72,50
+Q1,Ashwagandha Healthy Brain Mood & Stress,2025-03-01,9355.160000000002,631,439
+Q1,Ashwagandha Healthy Brain Mood & Stress,2025-04-01,1071.85,177,104
+Q1,Ashwagandha Healthy Brain Mood & Stress,2025-05-01,2106.23,144,70
+Q1,Ashwagandha Healthy Brain Mood & Stress,2025-06-01,-4216.76,194,69
+Q1,Ashwagandha Healthy Brain Mood & Stress,2025-07-01,1023.8600000000001,99,62
+Q1,Ashwagandha Healthy Brain Mood & Stress,2025-08-01,1568.1000000000001,96,35
+Q1,Ashwagandha Healthy Brain Mood & Stress,2025-09-01,2770.0899999999997,129,19
+Q1,Collagen Beauty,2025-01-01,1132.1599999999999,69,10
+Q1,Collagen Beauty,2025-02-01,4456.09,369,114
+Q1,Collagen Beauty,2025-03-01,3348.76,745,473
+Q1,Collagen Beauty,2025-04-01,3498.5600000000004,302,114
+Q1,Collagen Beauty,2025-05-01,3270.84,220,56
+Q1,Collagen Beauty,2025-06-01,2662.7,199,59
+Q1,Collagen Beauty,2025-07-01,862.44,86,55
+Q1,Collagen Beauty,2025-08-01,788.47,50,27
+Q1,Collagen Beauty,2025-09-01,568.8399999999999,33,15
+Q2,Magnesium + Beets & CoQ10,2025-05-01,582.84,40,4
+Q2,Magnesium + Beets & CoQ10,2025-06-01,439.10999999999996,269,162
+Q2,Magnesium + Beets & CoQ10,2025-07-01,1303.0899999999997,706,501
+Q2,Magnesium + Beets & CoQ10,2025-08-01,1302.06,119,62
+Q2,Magnesium + Beets & CoQ10,2025-09-01,1969.17,154,76
+Q2,Magnesium + Milk Thistle & Turmeric,2025-05-01,582.84,40,4
+Q2,Magnesium + Milk Thistle & Turmeric,2025-06-01,266.41999999999996,260,163
+Q2,Magnesium + Milk Thistle & Turmeric,2025-07-01,9450.809999999998,1492,522
+Q2,Magnesium + Milk Thistle & Turmeric,2025-08-01,3626.22,1352,149
+Q2,Magnesium + Milk Thistle & Turmeric,2025-09-01,1653.71,138,65
+Q2,Power to Sleep Magnesium PM + Relaxing Flower Complex,2025-05-01,0,4,1
+Q2,Power to Sleep Magnesium PM + Relaxing Flower Complex,2025-06-01,194.44,258,162
+Q2,Power to Sleep Magnesium PM + Relaxing Flower Complex,2025-07-01,6088.860000000001,1404,525
+Q2,Power to Sleep Magnesium PM + Relaxing Flower Complex,2025-08-01,3762.25,1417,178
+Q2,Power to Sleep Magnesium PM + Relaxing Flower Complex,2025-09-01,1547.96,164,76
+Q2,Turbo-Energy Libido-Max RED,2025-05-01,518.04,40,4
+Q2,Turbo-Energy Libido-Max RED,2025-06-01,170.4,254,160
+Q2,Turbo-Energy Libido-Max RED,2025-07-01,1289.0100000000002,734,523
+Q2,Turbo-Energy Libido-Max RED,2025-08-01,3272.44,356,162
+Q2,Turbo-Energy Libido-Max RED,2025-09-01,1263.41,124,61

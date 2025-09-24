@@ -1,0 +1,77 @@
+quarter,product_name,sales_rep,revenue_ytd,units_ytd,txn_count
+Q1,Ashwagandha Healthy Brain Mood & Stress,71.0,5205.420000000002,267,50
+Q1,Ashwagandha Healthy Brain Mood & Stress,80.0,4317.6,240,7
+Q1,Ashwagandha Healthy Brain Mood & Stress,10.0,1699.54,173,98
+Q1,Ashwagandha Healthy Brain Mood & Stress,9.0,1673.06,314,189
+Q1,Ashwagandha Healthy Brain Mood & Stress,90.0,1034.2,154,120
+Q1,Ashwagandha Healthy Brain Mood & Stress,27.0,1030.83,255,189
+Q1,Ashwagandha Healthy Brain Mood & Stress,7.0,1019.2900000000001,156,106
+Q1,Ashwagandha Healthy Brain Mood & Stress,,520.5799999999999,31,15
+Q1,Ashwagandha Healthy Brain Mood & Stress,12.0,411.42,75,52
+Q1,Ashwagandha Healthy Brain Mood & Stress,38.0,252.85000000000002,25,10
+Q1,Ashwagandha Healthy Brain Mood & Stress,2.0,214,21,13
+Q1,Ashwagandha Healthy Brain Mood & Stress,83.0,0,11,6
+Q1,Ashwagandha Healthy Brain Mood & Stress,63.0,0,2,1
+Q1,Collagen Beauty,80.0,12103.439999999999,696,17
+Q1,Collagen Beauty,71.0,2802.8199999999997,215,70
+Q1,Collagen Beauty,27.0,1543.1000000000001,307,215
+Q1,Collagen Beauty,9.0,997.3100000000001,267,196
+Q1,Collagen Beauty,7.0,949.24,159,111
+Q1,Collagen Beauty,10.0,798.0699999999999,128,86
+Q1,Collagen Beauty,90.0,451.73,141,121
+Q1,Collagen Beauty,,345.30000000000007,21,11
+Q1,Collagen Beauty,2.0,260.98,37,27
+Q1,Collagen Beauty,38.0,215.35000000000002,29,13
+Q1,Collagen Beauty,12.0,121.52,68,52
+Q1,Collagen Beauty,63.0,0,2,2
+Q1,Collagen Beauty,83.0,0,3,2
+Q2,Magnesium + Beets & CoQ10,71.0,1437.31,159,56
+Q2,Magnesium + Beets & CoQ10,,1346.0900000000001,105,55
+Q2,Magnesium + Beets & CoQ10,9.0,674.6700000000001,246,180
+Q2,Magnesium + Beets & CoQ10,27.0,506.49,226,165
+Q2,Magnesium + Beets & CoQ10,10.0,422.71999999999997,119,73
+Q2,Magnesium + Beets & CoQ10,7.0,407.16999999999996,144,83
+Q2,Magnesium + Beets & CoQ10,2.0,399.40000000000003,56,31
+Q2,Magnesium + Beets & CoQ10,90.0,349.30999999999995,140,107
+Q2,Magnesium + Beets & CoQ10,38.0,53.11,21,11
+Q2,Magnesium + Beets & CoQ10,83.0,0,27,6
+Q2,Magnesium + Beets & CoQ10,12.0,0,45,38
+Q2,Magnesium + Milk Thistle & Turmeric,10.0,8546.43,1890,96
+Q2,Magnesium + Milk Thistle & Turmeric,80.0,1748.52,108,2
+Q2,Magnesium + Milk Thistle & Turmeric,71.0,1509.29,171,59
+Q2,Magnesium + Milk Thistle & Turmeric,,1025.91,83,36
+Q2,Magnesium + Milk Thistle & Turmeric,9.0,797.31,271,194
+Q2,Magnesium + Milk Thistle & Turmeric,7.0,619.8399999999999,171,92
+Q2,Magnesium + Milk Thistle & Turmeric,27.0,551.39,262,197
+Q2,Magnesium + Milk Thistle & Turmeric,2.0,402.63,59,34
+Q2,Magnesium + Milk Thistle & Turmeric,90.0,202.51,148,122
+Q2,Magnesium + Milk Thistle & Turmeric,12.0,123.06,63,51
+Q2,Magnesium + Milk Thistle & Turmeric,38.0,53.11,21,11
+Q2,Magnesium + Milk Thistle & Turmeric,83.0,0,28,7
+Q2,Magnesium + Milk Thistle & Turmeric,63.0,0,7,2
+Q2,Power to Sleep Magnesium PM + Relaxing Flower Complex,10.0,5223.56,1784,100
+Q2,Power to Sleep Magnesium PM + Relaxing Flower Complex,80.0,1294.92,108,2
+Q2,Power to Sleep Magnesium PM + Relaxing Flower Complex,2.0,1019.51,122,43
+Q2,Power to Sleep Magnesium PM + Relaxing Flower Complex,,898.79,93,42
+Q2,Power to Sleep Magnesium PM + Relaxing Flower Complex,27.0,849.9900000000001,292,203
+Q2,Power to Sleep Magnesium PM + Relaxing Flower Complex,9.0,752.1200000000001,279,204
+Q2,Power to Sleep Magnesium PM + Relaxing Flower Complex,71.0,672.51,127,61
+Q2,Power to Sleep Magnesium PM + Relaxing Flower Complex,7.0,484.32,171,93
+Q2,Power to Sleep Magnesium PM + Relaxing Flower Complex,90.0,266.69,155,123
+Q2,Power to Sleep Magnesium PM + Relaxing Flower Complex,12.0,78.66,62,50
+Q2,Power to Sleep Magnesium PM + Relaxing Flower Complex,38.0,52.44,22,12
+Q2,Power to Sleep Magnesium PM + Relaxing Flower Complex,83.0,0,28,7
+Q2,Power to Sleep Magnesium PM + Relaxing Flower Complex,63.0,0,4,2
+Q2,Turbo-Energy Libido-Max RED,80.0,1554.12,108,2
+Q2,Turbo-Energy Libido-Max RED,71.0,1137.05,152,55
+Q2,Turbo-Energy Libido-Max RED,,872.53,80,36
+Q2,Turbo-Energy Libido-Max RED,7.0,759.93,181,100
+Q2,Turbo-Energy Libido-Max RED,10.0,696.4600000000002,150,98
+Q2,Turbo-Energy Libido-Max RED,9.0,543.9,262,200
+Q2,Turbo-Energy Libido-Max RED,2.0,343.48,59,34
+Q2,Turbo-Energy Libido-Max RED,90.0,270.58,150,122
+Q2,Turbo-Energy Libido-Max RED,27.0,241.60999999999999,251,194
+Q2,Turbo-Energy Libido-Max RED,12.0,93.64,62,50
+Q2,Turbo-Energy Libido-Max RED,83.0,0,28,7
+Q2,Turbo-Energy Libido-Max RED,63.0,0,7,2
+Q2,Turbo-Energy Libido-Max RED,38.0,0,18,10
