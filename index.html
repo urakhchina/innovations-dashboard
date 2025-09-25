@@ -526,6 +526,17 @@
             <canvas id="adoptionLag"></canvas>
           </div>
         </div>
+
+        <div id="aiReportBox" style="margin-top:12px;background:rgba(255,255,255,0.03);border-radius:10px;padding:12px;">
+            <div style="display:flex;gap:8px;align-items:center;justify-content:space-between;flex-wrap:wrap;">
+              <div style="font-weight:600;">Comprehensive AI Report</div>
+              <div>
+                <button id="btnGenerateAIReport" style="padding:6px 10px;border-radius:8px;">Generate report</button>
+                <button id="btnDownloadAIReport" style="padding:6px 10px;border-radius:8px;opacity:0.7;" disabled>Download .md</button>
+              </div>
+            </div>
+            <textarea id="aiReportOutput" rows="14" style="margin-top:8px;width:100%;border-radius:8px;padding:10px;background:rgba(0,0,0,0.35);color:#cfd6e4;border:1px solid rgba(255,255,255,0.08);" placeholder="Click Generate to build the report..."></textarea>
+          </div>
       
         <div class="chart-container full-width">
           <h3>🧲 Cohort Retention (First Purchase Month → % with 2nd Order ≤30/60/90d)</h3>
@@ -533,8 +544,18 @@
           <div id="cohortNotes" style="font-size:0.9em;color:#a0a0a0;margin-top:6px;">
             Tooltips show numerator/denominator. Curves are monotonically non-increasing by construction.
           </div>
+          <div id="cohortNarrative" style="
+            margin-top:10px;
+            padding:12px 14px;
+            border-radius:10px;
+            background:rgba(255,255,255,0.04);
+            color:#cfd6e4;
+            line-height:1.4;
+            font-size:0.95em;">
+            <!-- Filled by JS -->
         </div>
       </div>
+    </div>
       
     
     <script>
@@ -606,6 +627,206 @@
             .value();
         return invoices;
         }
+
+        // ---------- AI Report Utilities ----------
+        function asOfDateFromDetailed() {
+            const maxDateStr = _.max(dashboardData.detailed.map(d => d.posting_date));
+            return parseYMD(maxDateStr);
+            }
+
+            function buildWeeklyData(scope) {
+            const paid = buildPaidInvoices(dashboardData.detailed);
+            const keyGetter = scope === 'distributor' ? (inv => inv.distributor)
+                            : scope === 'rep' ? (inv => (inv.sales_rep != null ? String(inv.sales_rep) : '-1'))
+                            : (() => 'Overall');
+            const fmt = d3.timeFormat('%Y-W%V');
+            const grouped = _.groupBy(paid, inv => `${fmt(d3.timeWeek.floor(inv.posting_date))}::${String(keyGetter(inv))}`);
+            const rows = _.map(grouped, (recs, k) => {
+                const [week, key] = k.split('::');
+                return { week, key,
+                paidInvoices: recs.length,
+                doors: calcDoors(recs),
+                opa: calcOPA(recs),
+                rpd: calcRPD(recs)
+                };
+            });
+            const byKey = _.groupBy(rows, r => r.key);
+            for (const k in byKey) byKey[k] = _.sortBy(byKey[k], r => r.week);
+            const allWeeks = _.uniq(_.flatten(Object.values(byKey).map(arr => arr.map(r => r.week)))).sort();
+            return { byKey, allWeeks };
+            }
+
+            function summarizeSeriesForReport(weeks, doors, opa, rpd) {
+            const { summary, bullets } = summarizeSeries(weeks, doors, opa, rpd); // uses your enhanced function
+            return { summary, bullets };
+            }
+
+            function extractYEPPlanRows() {
+            // Rebuild quickly per your YEP table logic
+            const byProduct = _.chain(dashboardData.detailed)
+                .groupBy(d => d.product_name)
+                .map((recs, name) => {
+                const monthly = _.chain(recs).groupBy(r => r.posting_date.substring(0,7))
+                    .map((rows, m) => ({ month:m, revenue: _.sumBy(rows, r => Number(r.revenue)||0) }))
+                    .sortBy('month').value();
+                const ytdActual = _.sumBy(monthly, 'revenue');
+                const last3 = monthly.slice(-3);
+                const avgRecent = _.meanBy(last3, 'revenue') || 0;
+                const yePace = ytdActual + avgRecent * (12 - monthly.length);
+                const fyPlan = fyPlanFor ? fyPlanFor('product', name) : null;
+                const pace = (fyPlan && fyPlan > 0) ? (yePace / fyPlan) : null;
+                return { product: name, fyPlan, yep: yePace, pace };
+                })
+                .sortBy(r => r.product)
+                .value();
+            return byProduct;
+            }
+
+            function buildCohortData() {
+            const paid = buildPaidInvoices(dashboardData.detailed);
+            const byAcctProd = _.groupBy(paid, inv => `${inv.canonical_code}::${inv.product_name}`);
+            const firsts = [];
+            for (const key in byAcctProd) {
+                const arr = _.sortBy(byAcctProd[key], inv => inv.posting_date);
+                const first = arr[0], second = arr[1] || null;
+                firsts.push({
+                cohortMonth: d3.timeFormat('%Y-%m')(d3.timeMonth.floor(first.posting_date)),
+                has2nd30: !!(second && (second.posting_date - first.posting_date) <= 30*864e5),
+                has2nd60: !!(second && (second.posting_date - first.posting_date) <= 60*864e5),
+                has2nd90: !!(second && (second.posting_date - first.posting_date) <= 90*864e5)
+                });
+            }
+            const byCohort = _.groupBy(firsts, r => r.cohortMonth);
+            const months = Object.keys(byCohort).sort();
+            const pct = (num, den) => den ? (100*num/den) : 0;
+            const avg = arr => arr.length ? _.sum(arr)/arr.length : 0;
+            const avg30 = avg(months.map(m => pct(_.sumBy(byCohort[m], r => r.has2nd30?1:0), byCohort[m].length)));
+            const avg60 = avg(months.map(m => pct(_.sumBy(byCohort[m], r => r.has2nd60?1:0), byCohort[m].length)));
+            const avg90 = avg(months.map(m => pct(_.sumBy(byCohort[m], r => r.has2nd90?1:0), byCohort[m].length)));
+            return { months, byCohort, avg30, avg60, avg90 };
+            }
+
+            function mdEscape(s){ return String(s).replaceAll('|','\\|'); }
+
+            // ---------- Main generator ----------
+            async function generateAIReportMarkdown() {
+            const asOf = asOfDateFromDetailed();
+            const asOfStr = asOf ? asOf.toISOString().slice(0,10) : '—';
+
+            // YEP / Plan
+            const planRows = extractYEPPlanRows();
+            const planTable = [
+                '| Product | FY Plan | YEP ($) | Pace |',
+                '|---|---:|---:|---:|',
+                ...planRows.map(r => `| ${mdEscape(r.product)} | ${r.fyPlan!=null ? r.fyPlan.toLocaleString() : '—'} | ${r.yep.toLocaleString()} | ${r.pace!=null ? (r.pace*100).toFixed(0)+'%' : '—'} |`)
+            ].join('\n');
+
+            // Weekly Velocity (Overall + Top 3 Distributor + Top 3 Rep)
+            const overall = buildWeeklyData('overall');
+            const dist = buildWeeklyData('distributor');
+            const rep = buildWeeklyData('rep');
+
+            function narrativeFor(byKey, weeks, labelFn) {
+                const records = Object.keys(byKey).map(k => {
+                const arr = byKey[k];
+                const doors = weeks.map(w => (arr.find(x => x.week===w)?.doors) ?? 0);
+                const opa   = weeks.map(w => (arr.find(x => x.week===w)?.opa)   ?? 1);
+                const rpd   = weeks.map(w => (arr.find(x => x.week===w)?.rpd)   ?? 0);
+                const doorsSum = _.sum(doors);
+                const { summary, bullets } = summarizeSeriesForReport(weeks, doors, opa, rpd);
+                return { k, label: labelFn(k), doorsSum, summary, bullets };
+                });
+                const top = _.take(_.orderBy(records, ['doorsSum'], ['desc']), 3);
+                return top.map(r =>
+                `**${r.label}**\n\n${r.summary}\n\n- ${r.bullets.join('\n- ')}\n`).join('\n');
+            }
+
+            const overallNarr =
+                (() => {
+                const k = Object.keys(overall.byKey)[0];
+                const arr = overall.byKey[k];
+                const doors = overall.allWeeks.map(w => (arr.find(x => x.week===w)?.doors) ?? 0);
+                const opa   = overall.allWeeks.map(w => (arr.find(x => x.week===w)?.opa)   ?? 1);
+                const rpd   = overall.allWeeks.map(w => (arr.find(x => x.week===w)?.rpd)   ?? 0);
+                const { summary, bullets } = summarizeSeriesForReport(overall.allWeeks, doors, opa, rpd);
+                return `${summary}\n\n- ${bullets.join('\n- ')}`;
+                })();
+
+            const distNarr = narrativeFor(dist.byKey, dist.allWeeks, k => k);
+            const repNarr  = narrativeFor(rep.byKey,  rep.allWeeks,  k => (salesRepMap[String(k)] || 'Unassigned'));
+
+            // Cohort
+            const { months, byCohort, avg30, avg60, avg90 } = buildCohortData();
+
+            const md = [
+            `# Innovations Report (AI)
+            **As of:** ${asOfStr}
+
+            ---
+
+            ## Year-End Projection vs Plan
+            ${planTable}
+
+            ---
+
+            ## Weekly Velocity — Overall
+            ${overallNarr}
+
+            ---
+
+            ## Weekly Velocity — Top Distributors
+            ${distNarr || '_No distributor data_'}
+            ---
+
+            ## Weekly Velocity — Top Sales Reps
+            ${repNarr || '_No rep data_'}
+            ---
+
+            ## Cohort Retention (Accounts)
+            Each cohort = accounts (canonical_code) with a **first** paid invoice in that month; lines show % placing a **second** order within 30/60/90 days.
+
+            - Average reorder ≤30 days: ${isFinite(avg30)?avg30.toFixed(0):'—'}%
+            - Average reorder ≤60 days: ${isFinite(avg60)?avg60.toFixed(0):'—'}%
+            - Average reorder ≤90 days: ${isFinite(avg90)?avg90.toFixed(0):'—'}%
+
+            Monotonic curves are expected (≤30 ≥ ≤60 ≥ ≤90). Higher early percentages indicate faster loyalty formation.
+            `
+            ].join('\n');
+
+            return md;
+            }
+
+            function attachAIReportHandlers() {
+            const btnGen = document.getElementById('btnGenerateAIReport');
+            const btnDl  = document.getElementById('btnDownloadAIReport');
+            const out    = document.getElementById('aiReportOutput');
+            if (!btnGen || !btnDl || !out) return;
+
+            btnGen.onclick = async () => {
+                try {
+                const md = await generateAIReportMarkdown();
+                out.value = md;
+                btnDl.disabled = false;
+                btnDl.style.opacity = 1;
+                btnDl.onclick = () => {
+                    const blob = new Blob([md], {type:'text/markdown'});
+                    const asOf = asOfDateFromDetailed();
+                    const name = `innovations_ai_report_${asOf ? asOf.toISOString().slice(0,10) : 'na'}.md`;
+                    const a = document.createElement('a');
+                    a.href = URL.createObjectURL(blob);
+                    a.download = name;
+                    a.click();
+                    URL.revokeObjectURL(a.href);
+                };
+                } catch (e) {
+                console.error('AI report generation failed:', e);
+                out.value = `Error generating report: ${e.message || e}`;
+                btnDl.disabled = true;
+                btnDl.style.opacity = 0.7;
+                }
+            };
+        }
+
 
         // --- Doors calculator on a dataset of invoices ---
         function calcDoors(invoices) {
@@ -930,6 +1151,8 @@
             createYearEndProjection();
             createWeeklyVelocity();
             createCohortRetention();
+            attachAIReportHandlers();
+
 
             createParetoAnalysis()
         }
@@ -1124,7 +1347,7 @@
             const labels = Array.from({ length: maxMonths }, (_, i) => `Month ${i + 1}`);
 
             const datasets = productData.map((p, index) => {
-                const color = ['#667eea', '#764ba2', '#f093fb', '#f5576c', '#4ade80', '#fbbF24', '#ef4444', '#22c55e'][index % 8];
+                const color = ['#667eea', '#764ba2', '#f093fb', '#f5576c', '#4ade80', '#fbbf24', '#ef4444', '#22c55e'][index % 8];
                 return {
                     label: p.name,
                     data: p.revenueTrajectory,
@@ -1187,7 +1410,7 @@
             const labels = Array.from({ length: allMonths.length }, (_, i) => `Month ${i + 1}`);
 
             const datasets = productData.map((p, index) => {
-                const color = ['#667eea', '#764ba2', '#f093fb', '#f5576c', '#4ade80', '#fbbF24', '#ef4444', '#22c55e'][index % 8];
+                const color = ['#667eea', '#764ba2', '#f093fb', '#f5576c', '#4ade80', '#fbbf24', '#ef4444', '#22c55e'][index % 8];
                 return {
                     label: p.name,
                     data: p.cumulativeRevenue,
@@ -1807,7 +2030,48 @@ function createWeeklyVelocity() {
                 scales:{ y:{ ticks:{ callback: v => v+'%' } } }
                 }
             });
+            renderCohortNarrative(months, byCohort);
+
             }
+
+            function renderCohortNarrative(months, byCohort) {
+                const host = document.getElementById('cohortNarrative');
+                if (!host) return;
+
+                if (!months.length) {
+                    host.innerHTML = 'No cohort data available.';
+                    return;
+                }
+
+                // Compute overall averages across cohorts (percentages)
+                const avgPct = (num, den) => den ? (100 * num / den) : 0;
+                const asPct = v => (isFinite(v) ? v.toFixed(0) + '%' : '—');
+
+                const avg30 = _.mean(months.map(m => avgPct(_.sumBy(byCohort[m], r => r.has2nd30 ? 1 : 0), byCohort[m].length)));
+                const avg60 = _.mean(months.map(m => avgPct(_.sumBy(byCohort[m], r => r.has2nd60 ? 1 : 0), byCohort[m].length)));
+                const avg90 = _.mean(months.map(m => avgPct(_.sumBy(byCohort[m], r => r.has2nd90 ? 1 : 0), byCohort[m].length)));
+
+                const latestMonth = months[months.length - 1];
+
+                host.innerHTML = `
+                    <div><strong>Interpretation (Cohort Retention)</strong></div>
+                    <div style="margin-top:6px;">
+                    Each cohort groups accounts by their <em>first purchase month</em>, and we track whether they placed a
+                    <strong>second order</strong> within 30, 60, or 90 days.
+                    </div>
+                    <ul style="margin:6px 0 0 18px;">
+                    <li><strong>Stickiness at 30 days:</strong> On average, ${asPct(avg30)} of new accounts reorder within the first month.</li>
+                    <li><strong>Momentum at 60 days:</strong> ${asPct(avg60)} reorder by two months.</li>
+                    <li><strong>Longer-term retention (90 days):</strong> ${asPct(avg90)} reorder within three months.</li>
+                    <li>Latest cohort (<strong>${latestMonth}</strong>) is being tracked in real time; its curve will extend as weeks pass.</li>
+                    </ul>
+                    <div style="margin-top:6px;">
+                    Cohort curves should slope downward or stay flat (monotonic). Higher early percentages mean accounts become loyal faster.
+                    </div>
+                `;
+                }
+
+
 
 
 
