@@ -1,0 +1,4 @@
+column,description
+account_id,Account/door identifier (canonical_code by default)
+asof_date,Snapshot date used for features
+risk_prob_reorder_60d,Predicted probability of at least one paid invoice within 60 days after as-of

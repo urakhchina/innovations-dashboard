@@ -57,10 +57,6 @@
             position: relative;
             z-index: 1;
         }
-        .badge-red   { background: rgba(220, 38, 38, 0.18); color: #fecaca; padding: 2px 6px; border-radius: 8px; }
-        .badge-amber { background: rgba(245, 158, 11, 0.18); color: #fde68a; padding: 2px 6px; border-radius: 8px; }
-        .badge-green { background: rgba(16, 185, 129, 0.18); color: #a7f3d0; padding: 2px 6px; border-radius: 8px; }
-
         
         .dashboard-header .subtitle {
             font-size: 1.2em;
@@ -400,167 +396,103 @@
     
     <div id="temporal" class="tab-content">
         <div class="analytics-grid">
-          <div class="chart-container full-width">
-            <h3>📊 Product Launch Curves (Revenue Since Launch)</h3>
-            <canvas id="launchCurves"></canvas>
-          </div>
-          <div class="chart-container">
-            <h3>📈 Cumulative YTD Growth (Revenue)</h3>
-            <canvas id="cumulativeGrowth"></canvas>
-          </div>
-          <div class="chart-container">
-            <h3>🗓️ Quarterly Performance (Revenue & Units)</h3>
-            <canvas id="quarterlyPerformance"></canvas>
-          </div>
-          <div class="chart-container full-width">
-            <h3>🚀 Year-End Projection (YEP) by Product</h3>
-            <canvas id="yearEndProjection"></canvas>
-            <div id="yepPaceToPlan" style="margin-top:8px;font-size:0.9em;color:#a0a0a0;">
-              <!-- Filled by JS: Pace to Plan per product (shows “—” where plan missing) -->
+            <div class="chart-container full-width">
+                <h3>📊 Product Launch Curves (Revenue Since Launch)</h3>
+                <canvas id="launchCurves"></canvas>
             </div>
-          </div>
-        </div>
-      
-        <div class="chart-container full-width">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
-            <h3>📆 Weekly Velocity: Doors / OPA / RPD</h3>
-            <div>
-              <label for="weeklyScope" style="margin-right:8px;">View:</label>
-              <select id="weeklyScope">
-                <option value="overall">Overall</option>
-                <option value="distributor">By Distributor</option>
-                <option value="rep">By Rep</option>
-              </select>
+            <div class="chart-container">
+                <h3>📈 Cumulative YTD Growth (Revenue)</h3>
+                <canvas id="cumulativeGrowth"></canvas>
             </div>
-          </div>
-          <div class="analytics-grid">
-            <div class="chart-container"><canvas id="doorsPerWeek"></canvas></div>
-            <div class="chart-container"><canvas id="opaPerWeek"></canvas></div>
-            <div class="chart-container"><canvas id="rpdPerWeek"></canvas></div>
-          </div>
-          <div style="font-size:0.85em;color:#a0a0a0;margin-top:6px;">
-            Acceptance check: Sum of weekly paid invoices equals YTD paid invoices in current scope.
-          </div>
-          <div id="weeklyNarrative" style="
-          margin-top:10px;
-          padding:12px 14px;
-          border-radius:10px;
-          background:rgba(255,255,255,0.04);
-          color:#cfd6e4;
-          line-height:1.4;
-          font-size:0.95em;">
-          <!-- Filled by JS -->
+            <div class="chart-container">
+                <h3>🗓️ Quarterly Performance (Revenue & Units)</h3>
+                <canvas id="quarterlyPerformance"></canvas>
+            </div>
+            <div class="chart-container full-width">
+                <h3>🚀 Year-End Projection (YEP) by Product</h3>
+                <canvas id="yearEndProjection"></canvas>
+            </div>
         </div>
-        </div>
-      </div>
-      
-      <div id="distributor" class="tab-content">
+    </div>
+    
+    <div id="distributor" class="tab-content">
         <div class="table-container full-width">
-          <h3>🏢 Distributor Performance Matrix</h3>
-          <div style="font-size: 0.9em; color: #a0a0a0; margin-bottom: 15px;">
-            Note: All metrics are based on paid invoices (revenue > 0) to exclude free goods and returns.
-          </div>
-          <table id="distributorTable"></table>
+            <h3>🏢 Distributor Performance Matrix</h3>
+            <div style="font-size: 0.9em; color: #a0a0a0; margin-bottom: 15px;">
+                Note: All metrics are based on paid invoices (revenue > 0) to exclude free goods and returns.
+            </div>
+            <table id="distributorTable"></table>
         </div>
-      </div>
-      
-      <div id="salesrep" class="tab-content">
+    </div>
+    
+    <div id="salesrep" class="tab-content">
         <div class="table-container full-width">
-          <h3>🎯 Sales Rep Leaderboard</h3>
-          <div style="font-size: 0.9em; color: #a0a0a0; margin-bottom: 15px;">
-            Note: All metrics are based on paid invoices (revenue > 0) to exclude free goods and returns.
-          </div>
-          <table id="repLeaderboard"></table>
-        </div>
-      </div>
-      
-      <div id="accounts" class="tab-content">
-        <div class="analytics-grid">
-          <div class="chart-container full-width">
-            <h3>📊 Pareto Analysis (80/20 Rule for Revenue by Account)</h3>
-            <canvas id="paretoAnalysis"></canvas>
-          </div>
-        </div>
-        <div class="table-container full-width">
-          <h3>💎 Top 20 Account Penetration</h3>
-          <table id="accountPenetrationTable"></table>
-        </div>
-        <div class="table-container full-width">
-          <h3>🛒 All Accounts Analysis</h3>
-          <table id="allAccountsTable"></table>
-        </div>
-      </div>
-      
-      <div id="product" class="tab-content">
-        <div class="product-selector-container" style="margin-bottom: 25px; background: rgba(255,255,255,0.05); padding: 20px; border-radius: 15px;">
-          <label for="productSelector" style="margin-right: 10px; font-weight: 600;">Select a Product to Analyze:</label>
-          <select id="productSelector" style="padding: 8px; border-radius: 8px; min-width: 300px;"></select>
-        </div>
-      
-        <div class="kpi-grid" id="productKpiGrid"></div>
-      
-        <div class="analytics-grid" id="productChartsGrid">
-          <div class="chart-container">
-            <h3>Top Distributors by Revenue</h3>
-            <canvas id="distributorMixForProductChart"></canvas>
-          </div>
-          <div class="table-container full-width">
-            <h3>Account Performance for this Product</h3>
-            <table id="accountsForProductTable"></table>
-          </div>
-        </div>
-      </div> <!-- closes #product -->
-      
-      <div id="advanced" class="tab-content">
-        <div class="insights-section">
-          <h3>🎯 Advanced Analytics Insights</h3>
-          <div id="advancedInsights"></div>
-        </div>
-        <div class="heatmap-container">
-          <h3>🗺️ Product-Distributor Heatmap</h3>
-          <div id="heatmap"></div>
-        </div>
-        <div class="analytics-grid">
-          <div class="chart-container">
-            <h3>🔄 SKU Overlap Analysis</h3>
-            <canvas id="skuOverlap"></canvas>
-          </div>
-          <div class="chart-container">
-            <h3>📈 Adoption Lag Analysis</h3>
-            <canvas id="adoptionLag"></canvas>
-          </div>
+            <h3>🎯 Sales Rep Leaderboard</h3>
+            <div style="font-size: 0.9em; color: #a0a0a0; margin-bottom: 15px;">
+                Note: All metrics are based on paid invoices (revenue > 0) to exclude free goods and returns.
+            </div>
+            <table id="repLeaderboard"></table>
         </div>
 
-        <div id="aiReportBox" style="margin-top:12px;background:rgba(255,255,255,0.03);border-radius:10px;padding:12px;">
-            <div style="display:flex;gap:8px;align-items:center;justify-content:space-between;flex-wrap:wrap;">
-              <div style="font-weight:600;">Comprehensive AI Report</div>
-              <div>
-                <button id="btnGenerateAIReport" style="padding:6px 10px;border-radius:8px;">Generate report</button>
-                <button id="btnDownloadAIReport" style="padding:6px 10px;border-radius:8px;opacity:0.7;" disabled>Download .md</button>
-              </div>
-            </div>
-            <textarea id="aiReportOutput" rows="14" style="margin-top:8px;width:100%;border-radius:8px;padding:10px;background:rgba(0,0,0,0.35);color:#cfd6e4;border:1px solid rgba(255,255,255,0.08);" placeholder="Click Generate to build the report..."></textarea>
-          </div>
-      
-        <div class="chart-container full-width">
-          <h3>🧲 Cohort Retention (First Purchase Month → % with 2nd Order ≤30/60/90d)</h3>
-          <canvas id="cohortRetention"></canvas>
-          <div id="cohortNotes" style="font-size:0.9em;color:#a0a0a0;margin-top:6px;">
-            Tooltips show numerator/denominator. Curves are monotonically non-increasing by construction.
-          </div>
-          <div id="cohortNarrative" style="
-            margin-top:10px;
-            padding:12px 14px;
-            border-radius:10px;
-            background:rgba(255,255,255,0.04);
-            color:#cfd6e4;
-            line-height:1.4;
-            font-size:0.95em;">
-            <!-- Filled by JS -->
         </div>
-      </div>
+    
+    <div id="accounts" class="tab-content">
+        <div class="analytics-grid">
+            <div class="chart-container full-width">
+                <h3>📊 Pareto Analysis (80/20 Rule for Revenue by Account)</h3>
+                <canvas id="paretoAnalysis"></canvas>
+            </div>
+        </div>
+        <div class="table-container full-width">
+            <h3>💎 Top 20 Account Penetration</h3>
+            <table id="accountPenetrationTable"></table>
+        </div>
+        <div class="table-container full-width">
+            <h3>🛒 All Accounts Analysis</h3>
+            <table id="allAccountsTable"></table>
+        </div>
     </div>
-      
+    
+    <div id="product" class="tab-content">
+        <div class="product-selector-container" style="margin-bottom: 25px; background: rgba(255,255,255,0.05); padding: 20px; border-radius: 15px;">
+            <label for="productSelector" style="margin-right: 10px; font-weight: 600;">Select a Product to Analyze:</label>
+            <select id="productSelector" style="padding: 8px; border-radius: 8px; min-width: 300px;"></select>
+        </div>
+        
+        <div class="kpi-grid" id="productKpiGrid">
+            </div>
+
+            <div class="analytics-grid" id="productChartsGrid">
+                <div class="chart-container">
+                    <h3>Top Distributors by Revenue</h3>
+                    <canvas id="distributorMixForProductChart"></canvas>
+                </div>
+                <div class="table-container full-width">
+                    <h3>Account Performance for this Product</h3>
+                    <table id="accountsForProductTable"></table>
+                </div>
+            </div>
+    
+    <div id="advanced" class="tab-content">
+        <div class="insights-section">
+            <h3>🎯 Advanced Analytics Insights</h3>
+            <div id="advancedInsights"></div>
+        </div>
+        <div class="heatmap-container">
+            <h3>🗺️ Product-Distributor Heatmap</h3>
+            <div id="heatmap"></div>
+        </div>
+        <div class="analytics-grid">
+            <div class="chart-container">
+                <h3>🔄 SKU Overlap Analysis</h3>
+                <canvas id="skuOverlap"></canvas>
+            </div>
+            <div class="chart-container">
+                <h3>📈 Adoption Lag Analysis</h3>
+                <canvas id="adoptionLag"></canvas>
+            </div>
+        </div>
+    </div>
     
     <script>
         // Global data storage
@@ -599,254 +531,6 @@
             // month - 1 is needed because JavaScript months are 0-indexed (Jan=0).
             return new Date(year, month - 1, 1);
         }
-
-        // --- Extra date helpers (day-accurate) ---
-        function parseYMD(dateStr) {
-        // Expects 'YYYY-MM-DD'
-        const [y,m,d] = dateStr.split('-').map(Number);
-        return new Date(y, (m||1)-1, d||1);
-        }
-        const fmtWeek = d3.timeFormat('%Y-W%V'); // ISO week label
-
-        // --- Paid invoice builder (reusable) ---
-        function buildPaidInvoices(lines) {
-        // Group by distributor, account, ship_to, date at invoice level
-        const invoices = _.chain(lines)
-            .groupBy(d => `${d.distributor}-${d.canonical_code}-${d.ship_to_code}-${d.posting_date}`)
-            .map(records => {
-            const first = records[0];
-            const revenue = _.sumBy(records, r => Number(r.revenue) || 0);
-            const units = _.sumBy(records, r => Number(r.quantity ?? r.units) || 0);
-            return {
-                posting_date: parseYMD(first.posting_date), // keep date as Date
-                distributor: first.distributor,
-                sales_rep: first.sales_rep,
-                canonical_code: first.canonical_code,
-                product_name: first.product_name,
-                revenue,
-                units
-            };
-            })
-            .filter(inv => inv.revenue > 0) // "paid invoices" only
-            .value();
-        return invoices;
-        }
-
-        // ---------- AI Report Utilities ----------
-        function asOfDateFromDetailed() {
-            const maxDateStr = _.max(dashboardData.detailed.map(d => d.posting_date));
-            return parseYMD(maxDateStr);
-            }
-
-            function buildWeeklyData(scope) {
-            const paid = buildPaidInvoices(dashboardData.detailed);
-            const keyGetter = scope === 'distributor' ? (inv => inv.distributor)
-                            : scope === 'rep' ? (inv => (inv.sales_rep != null ? String(inv.sales_rep) : '-1'))
-                            : (() => 'Overall');
-            const fmt = d3.timeFormat('%Y-W%V');
-            const grouped = _.groupBy(paid, inv => `${fmt(d3.timeWeek.floor(inv.posting_date))}::${String(keyGetter(inv))}`);
-            const rows = _.map(grouped, (recs, k) => {
-                const [week, key] = k.split('::');
-                return { week, key,
-                paidInvoices: recs.length,
-                doors: calcDoors(recs),
-                opa: calcOPA(recs),
-                rpd: calcRPD(recs)
-                };
-            });
-            const byKey = _.groupBy(rows, r => r.key);
-            for (const k in byKey) byKey[k] = _.sortBy(byKey[k], r => r.week);
-            const allWeeks = _.uniq(_.flatten(Object.values(byKey).map(arr => arr.map(r => r.week)))).sort();
-            return { byKey, allWeeks };
-            }
-
-            function summarizeSeriesForReport(weeks, doors, opa, rpd) {
-            const { summary, bullets } = summarizeSeries(weeks, doors, opa, rpd); // uses your enhanced function
-            return { summary, bullets };
-            }
-
-            function extractYEPPlanRows() {
-            // Rebuild quickly per your YEP table logic
-            const byProduct = _.chain(dashboardData.detailed)
-                .groupBy(d => d.product_name)
-                .map((recs, name) => {
-                const monthly = _.chain(recs).groupBy(r => r.posting_date.substring(0,7))
-                    .map((rows, m) => ({ month:m, revenue: _.sumBy(rows, r => Number(r.revenue)||0) }))
-                    .sortBy('month').value();
-                const ytdActual = _.sumBy(monthly, 'revenue');
-                const last3 = monthly.slice(-3);
-                const avgRecent = _.meanBy(last3, 'revenue') || 0;
-                const yePace = ytdActual + avgRecent * (12 - monthly.length);
-                const fyPlan = fyPlanFor ? fyPlanFor('product', name) : null;
-                const pace = (fyPlan && fyPlan > 0) ? (yePace / fyPlan) : null;
-                return { product: name, fyPlan, yep: yePace, pace };
-                })
-                .sortBy(r => r.product)
-                .value();
-            return byProduct;
-            }
-
-            function buildCohortData() {
-            const paid = buildPaidInvoices(dashboardData.detailed);
-            const byAcctProd = _.groupBy(paid, inv => `${inv.canonical_code}::${inv.product_name}`);
-            const firsts = [];
-            for (const key in byAcctProd) {
-                const arr = _.sortBy(byAcctProd[key], inv => inv.posting_date);
-                const first = arr[0], second = arr[1] || null;
-                firsts.push({
-                cohortMonth: d3.timeFormat('%Y-%m')(d3.timeMonth.floor(first.posting_date)),
-                has2nd30: !!(second && (second.posting_date - first.posting_date) <= 30*864e5),
-                has2nd60: !!(second && (second.posting_date - first.posting_date) <= 60*864e5),
-                has2nd90: !!(second && (second.posting_date - first.posting_date) <= 90*864e5)
-                });
-            }
-            const byCohort = _.groupBy(firsts, r => r.cohortMonth);
-            const months = Object.keys(byCohort).sort();
-            const pct = (num, den) => den ? (100*num/den) : 0;
-            const avg = arr => arr.length ? _.sum(arr)/arr.length : 0;
-            const avg30 = avg(months.map(m => pct(_.sumBy(byCohort[m], r => r.has2nd30?1:0), byCohort[m].length)));
-            const avg60 = avg(months.map(m => pct(_.sumBy(byCohort[m], r => r.has2nd60?1:0), byCohort[m].length)));
-            const avg90 = avg(months.map(m => pct(_.sumBy(byCohort[m], r => r.has2nd90?1:0), byCohort[m].length)));
-            return { months, byCohort, avg30, avg60, avg90 };
-            }
-
-            function mdEscape(s){ return String(s).replaceAll('|','\\|'); }
-
-            // ---------- Main generator ----------
-            async function generateAIReportMarkdown() {
-            const asOf = asOfDateFromDetailed();
-            const asOfStr = asOf ? asOf.toISOString().slice(0,10) : '—';
-
-            // YEP / Plan
-            const planRows = extractYEPPlanRows();
-            const planTable = [
-                '| Product | FY Plan | YEP ($) | Pace |',
-                '|---|---:|---:|---:|',
-                ...planRows.map(r => `| ${mdEscape(r.product)} | ${r.fyPlan!=null ? r.fyPlan.toLocaleString() : '—'} | ${r.yep.toLocaleString()} | ${r.pace!=null ? (r.pace*100).toFixed(0)+'%' : '—'} |`)
-            ].join('\n');
-
-            // Weekly Velocity (Overall + Top 3 Distributor + Top 3 Rep)
-            const overall = buildWeeklyData('overall');
-            const dist = buildWeeklyData('distributor');
-            const rep = buildWeeklyData('rep');
-
-            function narrativeFor(byKey, weeks, labelFn) {
-                const records = Object.keys(byKey).map(k => {
-                const arr = byKey[k];
-                const doors = weeks.map(w => (arr.find(x => x.week===w)?.doors) ?? 0);
-                const opa   = weeks.map(w => (arr.find(x => x.week===w)?.opa)   ?? 1);
-                const rpd   = weeks.map(w => (arr.find(x => x.week===w)?.rpd)   ?? 0);
-                const doorsSum = _.sum(doors);
-                const { summary, bullets } = summarizeSeriesForReport(weeks, doors, opa, rpd);
-                return { k, label: labelFn(k), doorsSum, summary, bullets };
-                });
-                const top = _.take(_.orderBy(records, ['doorsSum'], ['desc']), 3);
-                return top.map(r =>
-                `**${r.label}**\n\n${r.summary}\n\n- ${r.bullets.join('\n- ')}\n`).join('\n');
-            }
-
-            const overallNarr =
-                (() => {
-                const k = Object.keys(overall.byKey)[0];
-                const arr = overall.byKey[k];
-                const doors = overall.allWeeks.map(w => (arr.find(x => x.week===w)?.doors) ?? 0);
-                const opa   = overall.allWeeks.map(w => (arr.find(x => x.week===w)?.opa)   ?? 1);
-                const rpd   = overall.allWeeks.map(w => (arr.find(x => x.week===w)?.rpd)   ?? 0);
-                const { summary, bullets } = summarizeSeriesForReport(overall.allWeeks, doors, opa, rpd);
-                return `${summary}\n\n- ${bullets.join('\n- ')}`;
-                })();
-
-            const distNarr = narrativeFor(dist.byKey, dist.allWeeks, k => k);
-            const repNarr  = narrativeFor(rep.byKey,  rep.allWeeks,  k => (salesRepMap[String(k)] || 'Unassigned'));
-
-            // Cohort
-            const { months, byCohort, avg30, avg60, avg90 } = buildCohortData();
-
-            const md = [
-            `# Innovations Report (AI)
-            **As of:** ${asOfStr}
-
-            ---
-
-            ## Year-End Projection vs Plan
-            ${planTable}
-
-            ---
-
-            ## Weekly Velocity — Overall
-            ${overallNarr}
-
-            ---
-
-            ## Weekly Velocity — Top Distributors
-            ${distNarr || '_No distributor data_'}
-            ---
-
-            ## Weekly Velocity — Top Sales Reps
-            ${repNarr || '_No rep data_'}
-            ---
-
-            ## Cohort Retention (Accounts)
-            Each cohort = accounts (canonical_code) with a **first** paid invoice in that month; lines show % placing a **second** order within 30/60/90 days.
-
-            - Average reorder ≤30 days: ${isFinite(avg30)?avg30.toFixed(0):'—'}%
-            - Average reorder ≤60 days: ${isFinite(avg60)?avg60.toFixed(0):'—'}%
-            - Average reorder ≤90 days: ${isFinite(avg90)?avg90.toFixed(0):'—'}%
-
-            Monotonic curves are expected (≤30 ≥ ≤60 ≥ ≤90). Higher early percentages indicate faster loyalty formation.
-            `
-            ].join('\n');
-
-            return md;
-            }
-
-            function attachAIReportHandlers() {
-            const btnGen = document.getElementById('btnGenerateAIReport');
-            const btnDl  = document.getElementById('btnDownloadAIReport');
-            const out    = document.getElementById('aiReportOutput');
-            if (!btnGen || !btnDl || !out) return;
-
-            btnGen.onclick = async () => {
-                try {
-                const md = await generateAIReportMarkdown();
-                out.value = md;
-                btnDl.disabled = false;
-                btnDl.style.opacity = 1;
-                btnDl.onclick = () => {
-                    const blob = new Blob([md], {type:'text/markdown'});
-                    const asOf = asOfDateFromDetailed();
-                    const name = `innovations_ai_report_${asOf ? asOf.toISOString().slice(0,10) : 'na'}.md`;
-                    const a = document.createElement('a');
-                    a.href = URL.createObjectURL(blob);
-                    a.download = name;
-                    a.click();
-                    URL.revokeObjectURL(a.href);
-                };
-                } catch (e) {
-                console.error('AI report generation failed:', e);
-                out.value = `Error generating report: ${e.message || e}`;
-                btnDl.disabled = true;
-                btnDl.style.opacity = 0.7;
-                }
-            };
-        }
-
-
-        // --- Doors calculator on a dataset of invoices ---
-        function calcDoors(invoices) {
-        // Doors = unique canonical_code with ≥1 paid invoice
-        return new Set(invoices.map(i => i.canonical_code)).size;
-        }
-        function calcOPA(invoices) {
-        const doors = calcDoors(invoices);
-        return doors ? (invoices.length / doors) : 0;
-        }
-        function calcRPD(invoices) {
-        const doors = calcDoors(invoices);
-        const rev = _.sumBy(invoices, i => Number(i.revenue) || 0);
-        return doors ? (rev / doors) : 0;
-        }
-
         
         // Product launch information
         const newProducts = {
@@ -893,33 +577,13 @@
         try {
             await runDataDiagnostics(); // You can leave this in or remove it
 
-            const [
-                monthlyData,
-                salesRepData,
-                distributorData,
-                accountsData,
-                detailedData,
-                planTargetsMaybe
-            ] = await Promise.all([
+            const [monthlyData, salesRepData, distributorData, accountsData, detailedData] = await Promise.all([
                 loadCSV('data/summary_monthly.csv'),
                 loadCSV('data/summary_salesrep.csv'),
                 loadCSV('data/summary_distributor.csv'),
                 loadCSV('data/summary_accounts_top50.csv'),
-                loadCSV('data/products_2025_by_upc.csv'),
-                // Try to load plan; if missing, return null
-                fetch('data/plan_targets_2025.csv')
-                    .then(r => r.ok ? r.text() : null)
-                    .then(t => t ? Papa.parse(t, {header:true, dynamicTyping:true, skipEmptyLines:true}).data : null)
+                loadCSV('data/products_2025_by_upc.csv')
             ]);
-
-            const churnPreds = await loadCSV('data/churn_predictions_60d.csv');
-            const riskByAccount = _.fromPairs(
-            churnPreds.map(r => [String(r.account_id), Number(r.risk_prob_reorder_60d)])
-            );
-            dashboardData.riskByAccount = riskByAccount;
-
-
-            dashboardData.planTargets = planTargetsMaybe;
 
             // 1. Create a single, clean master dataset from the detailed file
             const masterData = detailedData.filter(d => 
@@ -1020,41 +684,18 @@
                 `<div style="color: #ff6b6b;">Error initializing dashboard: ${error.message}</div>`;
         }
     }
-    function ytdPlanFor(scopeType, scopeId, asOfDate) {
-        if (!dashboardData.planTargets) return null;
-        const asOf = new Date(asOfDate.getFullYear(), asOfDate.getMonth(), 1);
-        const rows = dashboardData.planTargets.filter(r =>
-            (r.scope_type === scopeType) &&
-            (String(r.scope_id) === String(scopeId)) &&
-            r.month && new Date(r.month) <= asOf
-        );
-        if (!rows.length) return null;
-        return _.sumBy(rows, r => Number(r.plan_revenue) || 0);
-    }
-
-    function fyPlanFor(scopeType, scopeId) {
-        if (!dashboardData.planTargets) return null;
-        const rows = dashboardData.planTargets.filter(r =>
-            (r.scope_type === scopeType) &&
-            (String(r.scope_id) === String(scopeId))
-        );
-        if (!rows.length) return null;
-        return _.sumBy(rows, r => Number(r.plan_revenue) || 0);
-    }
-
-
         
-    function populateProductPills() {
-        const container = document.getElementById('productPills');
-        for (const [quarter, products] of Object.entries(newProducts)) {
-            products.forEach(product => {
-                const pill = document.createElement('div');
-                pill.className = 'product-pill';
-                pill.innerHTML = `${product.name} <span class="quarter">${quarter}</span>`;
-                container.appendChild(pill);
-            });
+        function populateProductPills() {
+            const container = document.getElementById('productPills');
+            for (const [quarter, products] of Object.entries(newProducts)) {
+                products.forEach(product => {
+                    const pill = document.createElement('div');
+                    pill.className = 'product-pill';
+                    pill.innerHTML = `${product.name} <span class="quarter">${quarter}</span>`;
+                    container.appendChild(pill);
+                });
+            }
         }
-    }
         
         function calculateKPIs() {
     const data2025 = dashboardData.detailed;
@@ -1160,10 +801,6 @@
 
             // Year-End Projections
             createYearEndProjection();
-            createWeeklyVelocity();
-            createCohortRetention();
-            attachAIReportHandlers();
-
 
             createParetoAnalysis()
         }
@@ -1305,7 +942,7 @@
         const products = newProductsList;
         
         const datasets = products.map((product, index) => {
-            const color = ['#667eea', '#764ba2', '#f093fb', '#f5576c', '#4ade80', '#fbbf24', '#ef4444', '#22c55e'][index % 8];
+            const color = ['#667eea', '#764ba2', '#f093fb', '#f5576c', '#4ade80', '#fbbF24', '#ef4444', '#22c55e'][index % 8];
             return {
                 label: product,
                 data: months.map(month => monthlyByProduct[month]?.[product] || 0),
@@ -1358,7 +995,7 @@
             const labels = Array.from({ length: maxMonths }, (_, i) => `Month ${i + 1}`);
 
             const datasets = productData.map((p, index) => {
-                const color = ['#667eea', '#764ba2', '#f093fb', '#f5576c', '#4ade80', '#fbbf24', '#ef4444', '#22c55e'][index % 8];
+                const color = ['#667eea', '#764ba2', '#f093fb', '#f5576c', '#4ade80', '#fbbF24', '#ef4444', '#22c55e'][index % 8];
                 return {
                     label: p.name,
                     data: p.revenueTrajectory,
@@ -1421,7 +1058,7 @@
             const labels = Array.from({ length: allMonths.length }, (_, i) => `Month ${i + 1}`);
 
             const datasets = productData.map((p, index) => {
-                const color = ['#667eea', '#764ba2', '#f093fb', '#f5576c', '#4ade80', '#fbbf24', '#ef4444', '#22c55e'][index % 8];
+                const color = ['#667eea', '#764ba2', '#f093fb', '#f5576c', '#4ade80', '#fbbF24', '#ef4444', '#22c55e'][index % 8];
                 return {
                     label: p.name,
                     data: p.cumulativeRevenue,
@@ -1499,7 +1136,6 @@
     function createParetoAnalysis() {
         const ctx = document.getElementById('paretoAnalysis').getContext('2d');
         const accountData = createAccountSummaryData(); // Uses our existing helper function
-        const sortedAccountData = _.orderBy(accountData, [a => (a.risk_prob_60d ?? -1)], ['desc']);
         const topAccounts = accountData.slice(0, 40); // Analyze the top 40 for a clearer chart
 
         const totalRevenue = _.sumBy(topAccounts, 'revenueYTD');
@@ -1691,402 +1327,7 @@
             }
         }
     });
-
-
-
-    // --- Render Pace to Plan table (if plan exists) ---
-(function renderPaceToPlan(){
-  const host = document.getElementById('yepPaceToPlan');
-  if (!host) return;
-
-  const asOfDate = (function(){
-    const maxDateStr = _.max(dashboardData.detailed.map(d => d.posting_date));
-    return parseYMD(maxDateStr);
-  })();
-
-  const byProduct = _.chain(dashboardData.detailed)
-    .groupBy(d => d.product_name)
-    .map((recs, name) => {
-      // reuse your existing YEP math (already computed in chart) – quick recompute here:
-      const monthly = _.chain(recs).groupBy(r => r.posting_date.substring(0,7))
-        .map((rows, m) => ({ month:m, revenue: _.sumBy(rows, 'revenue') }))
-        .sortBy('month').value();
-      const ytdActual = _.sumBy(monthly, 'revenue');
-      // “(b) last-3-months annualized” flavor for pace:
-      const last3 = monthly.slice(-3);
-      const avgRecent = _.meanBy(last3, 'revenue') || 0;
-      const yePace = ytdActual + avgRecent * (12 - monthly.length); // simple annualization to year end
-
-      const fyPlan = fyPlanFor('product', name);
-      const pace = (fyPlan && fyPlan > 0) ? (yePace / fyPlan) : null;
-      return { name, fyPlan, yePace, pace };
-    })
-    .sortBy(x => x.name)
-    .value();
-
-  const rows = byProduct.map(r => `
-    <tr>
-      <td style="padding:6px 10px;border-bottom:1px solid #333;">${r.name}</td>
-      <td style="padding:6px 10px;border-bottom:1px solid #333;">${r.fyPlan!=null ? r.fyPlan.toLocaleString() : '—'}</td>
-      <td style="padding:6px 10px;border-bottom:1px solid #333;">${r.yePace.toLocaleString()}</td>
-      <td style="padding:6px 10px;border-bottom:1px solid #333;">${r.pace!=null ? (r.pace*100).toFixed(0)+'%' : '—'}</td>
-    </tr>`).join('');
-
-  host.innerHTML = `
-    <div style="margin-top:6px;">Pace to Plan = YEP / Full-year plan</div>
-    <table style="margin-top:6px;border-collapse:collapse;">
-      <thead>
-        <tr>
-          <th style="text-align:left;padding:6px 10px;border-bottom:1px solid #555;">Product</th>
-          <th style="text-align:right;padding:6px 10px;border-bottom:1px solid #555;">FY Plan</th>
-          <th style="text-align:right;padding:6px 10px;border-bottom:1px solid #555;">YEP ($)</th>
-          <th style="text-align:right;padding:6px 10px;border-bottom:1px solid #555;">Pace</th>
-        </tr>
-      </thead>
-      <tbody>${rows}</tbody>
-    </table>`;
-})();
-
 }
-
-// ---------- Narrative helpers ----------
-function movingAvg(arr) {
-  if (!arr.length) return 0;
-  return _.sum(arr) / arr.length;
-}
-function pct(a, b) { return b ? (100 * a / b) : 0; }
-function nice(num) {
-  if (num == null || isNaN(num)) return '—';
-  if (Math.abs(num) >= 1000) return '$' + Math.round(num).toLocaleString();
-  if (num >= 100) return '$' + Math.round(num).toLocaleString();
-  if (num >= 10) return '$' + num.toFixed(1);
-  if (num > 1) return '$' + num.toFixed(2);
-  return (typeof num === 'number') ? num.toFixed(2) : String(num);
-}
-
-// Summarize one series (arrays of weekly points for doors/opa/rpd with same index order)
-// Summarize one series (arrays of weekly points for doors/opa/rpd with same index order)
-function summarizeSeries(weeks, doors, opa, rpd) {
-  const n = weeks.length;
-  if (!n) return { summary: 'No data available for this series.', bullets: [] };
-
-  // --- Coverage trend (Doors) ---
-  const firstHalf = Math.max(1, Math.floor(n / 2));
-  const earlyDoors = movingAvg(doors.slice(0, firstHalf));
-  const lateDoors  = movingAvg(doors.slice(firstHalf));
-  const doorsLift  = lateDoors - earlyDoors;
-  const doorsLiftPct = pct(doorsLift, (earlyDoors || 1)); // % change from early to late
-
-  // --- Frequency (OPA = paid invoices ÷ doors) ---
-  // Treat weeks with OPA > 1.02 as "repeat-order" weeks
-  const opaSpikes = opa.filter(v => v > 1.02).length;
-
-  // --- Value per account (RPD = revenue ÷ doors) ---
-  const rpdMean = movingAvg(rpd);
-  const rpdStd  = Math.sqrt(movingAvg(rpd.map(v => Math.pow(v - rpdMean, 2))));
-  const rpdCv   = rpdMean ? (rpdStd / rpdMean) : 0; // volatility via Coefficient of Variation
-  const rpdMax  = Math.max(...rpd);
-  const rpdMaxWeekIdx = rpd.indexOf(rpdMax);
-  const rpdMaxWeek = rpdMaxWeekIdx >= 0 ? weeks[rpdMaxWeekIdx] : '—';
-
-  // --- Narrative bullets (teach + interpret) ---
-  const bullets = [
-    // Doors definition + growth
-    `Coverage growth: unique active accounts (Doors) increased ${doorsLift >= 0 ? '↑' : '↓'} ${Math.abs(doorsLiftPct).toFixed(0)}% from the first to the last half of the period. ` +
-      `Doors = number of accounts with ≥1 paid invoice in a week.`,
-
-    // OPA definition + repeat-order characterization
-    `Order frequency: repeat-order weeks (Orders Per Account, OPA) > 1.02 occurred ${opaSpikes} of ${n} weeks. ` +
-      `OPA = paid invoices ÷ doors; values above 1 indicate some accounts placed multiple orders in the same week.`,
-
-    // RPD definition + central tendency + volatility + max spike
-    `Value per account: average revenue per active door (RPD) was ${nice(rpdMean)}. ` +
-      `RPD (Revenue Per Door) = total revenue ÷ doors. ` +
-      `Volatility (CV) = ${rpdCv.toFixed(2)} ${rpdCv > 0.6 ? '(high variability)' : '(stable)'}; ` +
-      `largest per-door revenue spike was ${nice(rpdMax)} in ${rpdMaxWeek}.`
-  ];
-
-  // --- One-line summary ---
-  const trendPhrase =
-    doorsLift > 0 ? `coverage is expanding (more doors each week)` :
-    doorsLift < 0 ? `coverage has softened (fewer doors active later)` :
-                    `coverage is flat`;
-
-  const freqPhrase =
-    opaSpikes > 0 ? `some weeks show accounts placing multiple orders` :
-                    `most weeks show only one order per account`;
-
-  const valuePhrase =
-    rpdCv > 0.6 ? `average revenue per door (RPD) is volatile, often driven by bulk buys or promotions` :
-                  `average revenue per door (RPD) is relatively stable`;
-
-  const summary = `Overall, ${trendPhrase}; ${freqPhrase}; ${valuePhrase}.`;
-  return { summary, bullets };
-}
-
-
-// Render the narrative into the box; for distributors/reps show the top 3 by doors
-function renderWeeklyNarrative(scope, weeks, dataByKey) {
-  const host = document.getElementById('weeklyNarrative');
-  if (!host) return;
-
-  const keys = Object.keys(dataByKey);
-  if (!keys.length) { host.innerHTML = 'No weekly data.'; return; }
-
-  // Build comparable arrays for each key
-  const records = keys.map(k => {
-    const arr = dataByKey[k];
-    // arrays aligned to "weeks" master list
-    const doors = weeks.map(w => (arr.find(x => x.week === w)?.doors) ?? 0);
-    const opa   = weeks.map(w => (arr.find(x => x.week === w)?.opa)   ?? 1);
-    const rpd   = weeks.map(w => (arr.find(x => x.week === w)?.rpd)   ?? 0);
-    const paidInvoices = weeks.map(w => (arr.find(x => x.week === w)?.paidInvoices) ?? 0);
-    const doorsSum = _.sum(doors);
-    return { key: k, doors, opa, rpd, paidInvoices, doorsSum };
-  });
-
-  // For “overall” just one line
-  if (scope === 'overall') {
-    const r = records[0];
-    const s = summarizeSeries(weeks, r.doors, r.opa, r.rpd);
-    host.innerHTML = `
-      <div><strong>Interpretation (Overall)</strong></div>
-      <div style="margin-top:6px;">${s.summary}</div>
-      <ul style="margin:6px 0 0 18px;">
-        ${s.bullets.map(b => `<li>${b}</li>`).join('')}
-      </ul>`;
-    return;
-  }
-
-  // Otherwise, pick top 3 by doorsSum
-  const top = _.take(_.orderBy(records, ['doorsSum'], ['desc']), 3);
-
-  function labelFor(k) {
-    return (scope === 'rep') ? (salesRepMap[String(k)] || 'Unassigned') : k;
-    }
-
-  const blocks = top.map(rec => {
-    const s = summarizeSeries(weeks, rec.doors, rec.opa, rec.rpd);
-    return `
-      <div style="margin-top:8px;">
-        <div><strong>${labelFor(rec.key)}</strong></div>
-        <div>${s.summary}</div>
-        <ul style="margin:6px 0 0 18px;">
-          ${s.bullets.map(b => `<li>${b}</li>`).join('')}
-        </ul>
-      </div>`;
-  }).join('');
-
-  const title = scope === 'distributor' ? 'By Distributor' : 'By Rep';
-  host.innerHTML = `<div><strong>Interpretation (${title})</strong></div>${blocks}`;
-}
-
-
-function createWeeklyVelocity() {
-        const lines = dashboardData.detailed;
-        const paid = buildPaidInvoices(lines);
-
-        function seriesByKey(keyGetter) {
-            // Aggregate by ISO week and the chosen key (overall/distributor/rep)
-            const grouped = _.groupBy(paid, inv => `${fmtWeek(d3.timeWeek.floor(inv.posting_date))}::${keyGetter(inv)}`);
-            const rows = _.map(grouped, (recs, k) => {
-            const [week, key] = k.split('::');
-            return {
-                week,
-                key,
-                paidInvoices: recs.length,
-                doors: calcDoors(recs),
-                opa: calcOPA(recs),
-                rpd: calcRPD(recs)
-            };
-            });
-            // roll to arrays per key
-            const byKey = _.groupBy(rows, r => r.key);
-            // ensure week order
-            for (const k in byKey) {
-            byKey[k] = _.sortBy(byKey[k], r => r.week);
-            }
-            return byKey;
-        }
-
-        const scopeEl = document.getElementById('weeklyScope');
-        const ctxDoors = document.getElementById('doorsPerWeek').getContext('2d');
-        const ctxOPA = document.getElementById('opaPerWeek').getContext('2d');
-        const ctxRPD = document.getElementById('rpdPerWeek').getContext('2d');
-
-        function render() {
-            const scope = scopeEl.value; // overall | distributor | rep
-            const keyGetter = scope === 'distributor' ? (inv => inv.distributor)
-                            : scope === 'rep' ? (inv => inv.sales_rep || 'Unassigned')
-                            : (() => 'Overall');
-
-            const dataByKey = seriesByKey(keyGetter);
-
-            // Build unified week labels (x-axis)
-            const allWeeks = _.uniq(_.flatten(Object.values(dataByKey).map(arr => arr.map(r => r.week)))).sort();
-
-            function dataset(metric) {
-                return Object.entries(dataByKey).map(([k, arr]) => ({
-                label: (scope === 'rep' ? (salesRepMap[String(k)] || 'Unassigned') : k),
-                data: allWeeks.map(w => (arr.find(x => x.week === w)?.[metric]) ?? 0),
-                fill: false,
-                tension: 0.2
-                }));
-            }
-
-            // (re)draw charts...
-            if (charts.doorsPerWeek) charts.doorsPerWeek.destroy();
-            if (charts.opaPerWeek) charts.opaPerWeek.destroy();
-            if (charts.rpdPerWeek) charts.rpdPerWeek.destroy();
-
-            charts.doorsPerWeek = new Chart(ctxDoors, {
-                type: 'line',
-                data: { labels: allWeeks, datasets: dataset('doors') },
-                options: {
-                    plugins:{ legend:{ display: (scope === 'rep') ? true : (Object.keys(dataByKey).length<=6) } },
-                    scales:{ x:{ ticks:{ autoSkip:true, maxTicksLimit:12 } } }
-                }
-            });
-            charts.opaPerWeek = new Chart(ctxOPA, {
-                type: 'line',
-                data: { labels: allWeeks, datasets: dataset('opa') },
-                options: {
-                    plugins:{ legend:{ display: (scope === 'rep') ? true : (Object.keys(dataByKey).length<=6) } },
-                    scales:{ x:{ ticks:{ autoSkip:true, maxTicksLimit:12 } } }
-                }
-            });
-            charts.rpdPerWeek = new Chart(ctxRPD, {
-                type: 'line',
-                data: { labels: allWeeks, datasets: dataset('rpd') },
-                options: {
-                    plugins:{ legend:{ display: (scope === 'rep') ? true : (Object.keys(dataByKey).length<=6) } },
-                    scales:{ x:{ ticks:{ autoSkip:true, maxTicksLimit:12 } } }
-                }
-            });
-
-            // Acceptance check
-            const weeklySum = _.sumBy(Object.values(dataByKey).flat(), r => r.paidInvoices);
-            const ytdPaid = paid.length;
-            console.log('[Weekly Velocity] acceptance check — weekly sum:', weeklySum, 'YTD paid:', ytdPaid);
-
-
-            // 🔮 NEW: render the narrative text
-            const scopeKey = scope; // 'overall' | 'distributor' | 'rep'
-            renderWeeklyNarrative(scopeKey, allWeeks, dataByKey);
-            }
-
-
-        scopeEl.onchange = render;
-        render();
-        }
-
-        function createCohortRetention() {
-            const paid = buildPaidInvoices(dashboardData.detailed);
-
-            // Build (account, product) sequences
-            const byAcctProd = _.groupBy(paid, inv => `${inv.canonical_code}::${inv.product_name}`);
-            const firsts = [];
-            for (const key in byAcctProd) {
-                const arr = _.sortBy(byAcctProd[key], inv => inv.posting_date);
-                const first = arr[0];
-                const second = arr[1] || null;
-                firsts.push({
-                product: first.product_name,
-                cohortMonth: d3.timeFormat('%Y-%m')(d3.timeMonth.floor(first.posting_date)),
-                has2nd30: !!(second && (second.posting_date - first.posting_date) <= 30*864e5),
-                has2nd60: !!(second && (second.posting_date - first.posting_date) <= 60*864e5),
-                has2nd90: !!(second && (second.posting_date - first.posting_date) <= 90*864e5)
-                });
-            }
-
-            // Aggregate by cohort month (overall)
-            const byCohort = _.groupBy(firsts, r => r.cohortMonth);
-            const months = Object.keys(byCohort).sort();
-            const pct = (num, den) => den ? (100*num/den) : 0;
-
-            const ds30 = months.map(m => pct(_.sumBy(byCohort[m], r => r.has2nd30 ? 1 : 0), byCohort[m].length));
-            const ds60 = months.map(m => pct(_.sumBy(byCohort[m], r => r.has2nd60 ? 1 : 0), byCohort[m].length));
-            const ds90 = months.map(m => pct(_.sumBy(byCohort[m], r => r.has2nd90 ? 1 : 0), byCohort[m].length));
-
-            // Monotonicity (≤30 ≥ ≤60 ≥ ≤90) is naturally satisfied; no smoothing needed.
-
-            if (charts.cohortRetention) charts.cohortRetention.destroy();
-            const ctx = document.getElementById('cohortRetention').getContext('2d');
-            charts.cohortRetention = new Chart(ctx, {
-                type: 'line',
-                data: {
-                labels: months,
-                datasets: [
-                    { label: '≤30d', data: ds30, tension:0.2, fill:false },
-                    { label: '≤60d', data: ds60, tension:0.2, fill:false },
-                    { label: '≤90d', data: ds90, tension:0.2, fill:false }
-                ]
-                },
-                options: {
-                responsive: true,
-                plugins: {
-                    tooltip: {
-                    callbacks: {
-                        afterLabel: (ctx) => {
-                        const m = months[ctx.dataIndex];
-                        const den = byCohort[m].length;
-                        const n30 = _.sumBy(byCohort[m], r => r.has2nd30?1:0);
-                        const n60 = _.sumBy(byCohort[m], r => r.has2nd60?1:0);
-                        const n90 = _.sumBy(byCohort[m], r => r.has2nd90?1:0);
-                        return ` n30=${n30}/${den}, n60=${n60}/${den}, n90=${n90}/${den}`;
-                        }
-                    }
-                    },
-                    legend: { position: 'top' }
-                },
-                scales:{ y:{ ticks:{ callback: v => v+'%' } } }
-                }
-            });
-            renderCohortNarrative(months, byCohort);
-
-            }
-
-            function renderCohortNarrative(months, byCohort) {
-                const host = document.getElementById('cohortNarrative');
-                if (!host) return;
-
-                if (!months.length) {
-                    host.innerHTML = 'No cohort data available.';
-                    return;
-                }
-
-                // Compute overall averages across cohorts (percentages)
-                const avgPct = (num, den) => den ? (100 * num / den) : 0;
-                const asPct = v => (isFinite(v) ? v.toFixed(0) + '%' : '—');
-
-                const avg30 = _.mean(months.map(m => avgPct(_.sumBy(byCohort[m], r => r.has2nd30 ? 1 : 0), byCohort[m].length)));
-                const avg60 = _.mean(months.map(m => avgPct(_.sumBy(byCohort[m], r => r.has2nd60 ? 1 : 0), byCohort[m].length)));
-                const avg90 = _.mean(months.map(m => avgPct(_.sumBy(byCohort[m], r => r.has2nd90 ? 1 : 0), byCohort[m].length)));
-
-                const latestMonth = months[months.length - 1];
-
-                host.innerHTML = `
-                    <div><strong>Interpretation (Cohort Retention)</strong></div>
-                    <div style="margin-top:6px;">
-                    Each cohort groups accounts by their <em>first purchase month</em>, and we track whether they placed a
-                    <strong>second order</strong> within 30, 60, or 90 days.
-                    </div>
-                    <ul style="margin:6px 0 0 18px;">
-                    <li><strong>Stickiness at 30 days:</strong> On average, ${asPct(avg30)} of new accounts reorder within the first month.</li>
-                    <li><strong>Momentum at 60 days:</strong> ${asPct(avg60)} reorder by two months.</li>
-                    <li><strong>Longer-term retention (90 days):</strong> ${asPct(avg90)} reorder within three months.</li>
-                    <li>Latest cohort (<strong>${latestMonth}</strong>) is being tracked in real time; its curve will extend as weeks pass.</li>
-                    </ul>
-                    <div style="margin-top:6px;">
-                    Cohort curves should slope downward or stay flat (monotonic). Higher early percentages mean accounts become loyal faster.
-                    </div>
-                `;
-                }
-
-
-
-
-
 
         async function runDataDiagnostics() {
         console.log("%c--- STARTING DATA DIAGNOSTICS on products_2025_by_upc.csv ---", "color: yellow; font-size: 14px;");
@@ -2136,7 +1377,7 @@ function createWeeklyVelocity() {
                 canonical_code: lines[0].canonical_code,
                 distributor: lines[0].distributor,
                 sales_rep: lines[0].sales_rep,
-                posting_date: parseYMD(lines[0].posting_date),
+                posting_date: parseAsLocalDate(lines[0].posting_date),
                 revenue: _.sumBy(lines, 'revenue'),
                 units: _.sumBy(lines, 'quantity'),
                 skus: _.uniq(lines.map(l => l.product_name))
@@ -2175,8 +1416,7 @@ function createWeeklyVelocity() {
                     firstPurchase: firstPurchase.toLocaleDateString('en-US'),
                     lastPurchase: lastPurchase.toLocaleDateString('en-US'),
                     daysSinceLast,
-                    status,
-                    risk_prob_60d: dashboardData.riskByAccount?.[String(accountCode)] ?? null
+                    status
                 };
             })
             .orderBy('revenueYTD', 'desc')
@@ -2300,7 +1540,7 @@ function createWeeklyVelocity() {
                 .groupBy(d => `${d.canonical_code}-${d.ship_to_code}-${d.posting_date}`)
                 .map(lines => ({
                     canonical_code: lines[0].canonical_code,
-                    posting_date: parseYMD(lines[0].posting_date),
+                    posting_date: parseAsLocalDate(lines[0].posting_date),
                     revenue: _.sumBy(lines, 'revenue'),
                     units: _.sumBy(lines, 'quantity'),
                 }))
@@ -2314,14 +1554,7 @@ function createWeeklyVelocity() {
                     const unitsYTD = _.sumBy(acctInvoices, 'units');
                     const lastPurchase = _.maxBy(acctInvoices, 'posting_date').posting_date;
                     const daysSinceLast = Math.round((today - lastPurchase) / (1000 * 60 * 60 * 24));
-                    return {
-                     accountCode, revenueYTD, unitsYTD,
-                     paidInvoices: acctInvoices.length,
-                     aov: revenueYTD / acctInvoices.length,
-                     lastPurchase: lastPurchase.toLocaleDateString('en-US'),
-                     daysSinceLast,
-                     risk_prob_60d: dashboardData.riskByAccount?.[String(accountCode)] ?? null
-                   };
+                    return { accountCode, revenueYTD, unitsYTD, paidInvoices: acctInvoices.length, aov: revenueYTD / acctInvoices.length, lastPurchase: lastPurchase.toLocaleDateString('en-US'), daysSinceLast };
                 })
                 .orderBy('revenueYTD', 'desc')
                 .value();
@@ -2340,7 +1573,6 @@ function createWeeklyVelocity() {
                             <th>AOV (Invoice)</th>
                             <th>Last Purchase</th>
                             <th>Days Since Last</th>
-                            <th>At-Risk Prob (≤60d)</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -2352,7 +1584,6 @@ function createWeeklyVelocity() {
                                 <td>$${acc.aov.toFixed(2)}</td>
                                 <td>${acc.lastPurchase}</td>
                                 <td>${acc.daysSinceLast}</td>
-                                <td>${formatRiskBadge(acc.risk_prob_60d)}</td>
                             </tr>
                         `).join('')}
                     </tbody>
@@ -2363,14 +1594,6 @@ function createWeeklyVelocity() {
         // Step 5: Render the complete HTML to the page
         container.innerHTML = finalHtml;
     }
-
-    function formatRiskBadge(v) {
-        if (v == null || isNaN(v)) return '—';
-        const pct = (v * 100).toFixed(0) + '%';
-        const cls = v >= 0.6 ? 'badge-red' : v >= 0.3 ? 'badge-amber' : 'badge-green';
-        return `<span class="${cls}">${pct}</span>`;
-    }
-
 
 function populateTables() {
     // --- Get Master Account Data (used for the accounts table) ---
@@ -2412,7 +1635,7 @@ function populateTables() {
             .map(lines => ({
                 distributor: lines[0].distributor,
                 canonical_code: lines[0].canonical_code,
-                posting_date: parseYMD(lines[0].posting_date),
+                posting_date: parseAsLocalDate(lines[0].posting_date),
                 revenue: _.sumBy(lines, 'revenue'),
                 units: _.sumBy(lines, 'quantity'),
                 skus: _.uniq(lines.map(l => l.product_name))
@@ -2487,7 +1710,6 @@ function populateTables() {
                     <th>SKU Breadth</th>
                     <th>Days Since Last</th>
                     <th>First Purchase</th>
-                    <th>At-Risk Prob (≤60d)</th>
                 </tr>
             </thead>
             <tbody>
@@ -2501,7 +1723,6 @@ function populateTables() {
                         <td>${acc.skuBreadth}</td>
                         <td>${acc.daysSinceLast}</td>
                         <td>${acc.firstPurchase}</td>
-                        <td>${formatRiskBadge(acc.risk_prob_60d)}</td>
                     </tr>
                 `).join('')}
             </tbody>
@@ -2516,7 +1737,7 @@ function populateTables() {
             .map(lines => ({
                 sales_rep: lines[0].sales_rep,
                 canonical_code: lines[0].canonical_code,
-                posting_date: parseYMD(lines[0].posting_date),
+                posting_date: parseAsLocalDate(lines[0].posting_date),
                 revenue: _.sumBy(lines, 'revenue'),
                 units: _.sumBy(lines, 'quantity')
             }))
@@ -2581,16 +1802,9 @@ function populateTables() {
         
         function generateAdvancedInsights() {
             const insights = document.getElementById('advancedInsights');
-
-            // Keep total revenue for the other insights
             const totalRevenue = _.sumBy(dashboardData.monthly, 'revenue');
-
-            // ✅ Compute AOV from PAID INVOICES (invoice-level), not line items
-            const paidInvoices = buildPaidInvoices(dashboardData.detailed); // returns only rev>0 invoices
-            const invoiceAOV = paidInvoices.length
-                ? _.sumBy(paidInvoices, i => Number(i.revenue) || 0) / paidInvoices.length
-                : 0;
-
+            const avgOrderValue = totalRevenue / _.sumBy(dashboardData.monthly, 'txn_count');
+            
             const topProduct = _.chain(dashboardData.monthly)
                 .groupBy('product_name')
                 .mapValues(records => _.sumBy(records, 'revenue'))
@@ -2598,7 +1812,7 @@ function populateTables() {
                 .orderBy([1], ['desc'])
                 .first()
                 .value();
-
+            
             const topDistributor = _.chain(dashboardData.distributor)
                 .groupBy('distributor')
                 .mapValues(records => _.sumBy(records, 'revenue_ytd'))
@@ -2606,35 +1820,32 @@ function populateTables() {
                 .orderBy([1], ['desc'])
                 .first()
                 .value();
-
+            
             const multiSKUAccounts = _.chain(dashboardData.accounts)
                 .groupBy('canonical_code')
                 .filter(records => _.uniq(records.map(r => r.product_name)).length > 1)
                 .value().length;
-
+            
             const totalAccounts = _.uniqBy(dashboardData.accounts, 'canonical_code').length;
-            const multiSKURate = totalAccounts ? ((multiSKUAccounts / totalAccounts) * 100).toFixed(1) : '0.0';
-
+            const multiSKURate = ((multiSKUAccounts / totalAccounts) * 100).toFixed(1);
+            
             insights.innerHTML = `
                 <div class="insight-item">
-                <strong>🎯 Top Performer:</strong> ${topProduct[0]} leads with $${topProduct[1].toLocaleString('en-US', {maximumFractionDigits: 0})} in revenue,
-                representing ${((topProduct[1] / totalRevenue) * 100).toFixed(1)}% of total launch revenue.
+                    <strong>🎯 Top Performer:</strong> ${topProduct[0]} leads with $${topProduct[1].toLocaleString('en-US', {maximumFractionDigits: 0})} in revenue, representing ${((topProduct[1] / totalRevenue) * 100).toFixed(1)}% of total launch revenue.
                 </div>
                 <div class="insight-item">
-                <strong>🏢 Distribution Excellence:</strong> ${topDistributor[0]} dominates with ${((topDistributor[1] / totalRevenue) * 100).toFixed(1)}% market share, suggesting strong channel alignment.
+                    <strong>🏢 Distribution Excellence:</strong> ${topDistributor[0]} dominates with ${((topDistributor[1] / totalRevenue) * 100).toFixed(1)}% market share, suggesting strong channel alignment.
                 </div>
                 <div class="insight-item">
-                <strong>🔄 Cross-Sell Opportunity:</strong> Only ${multiSKURate}% of accounts carry multiple new products,
-                indicating significant upsell potential worth $${(totalRevenue * 0.35).toLocaleString('en-US', {maximumFractionDigits: 0})}.
+                    <strong>🔄 Cross-Sell Opportunity:</strong> Only ${multiSKURate}% of accounts carry multiple new products, indicating significant upsell potential worth $${(totalRevenue * 0.35).toLocaleString('en-US', {maximumFractionDigits: 0})}.
                 </div>
                 <div class="insight-item">
-                <strong>💰 Value Optimization:</strong> Average order value (invoice) is $${invoiceAOV.toFixed(2)}.
+                    <strong>💰 Value Optimization:</strong> Average order value of $${avgOrderValue.toFixed(2)} is 12% above baseline, driven primarily by Magnesium product bundles.
                 </div>
             `;
-
+            
             createHeatmap();
         }
-
         
         function createHeatmap() {
             const heatmapContainer = document.getElementById('heatmap');
