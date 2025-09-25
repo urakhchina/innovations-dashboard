@@ -430,6 +430,7 @@
                 <option value="overall">Overall</option>
                 <option value="distributor">By Distributor</option>
                 <option value="rep">By Rep</option>
+                <option value="product">By Product</option>
               </select>
             </div>
           </div>
@@ -2092,7 +2093,11 @@ function renderWeeklyNarrative(scope, weeks, dataByKey) {
       </div>`;
   }).join('');
 
-  const title = scope === 'distributor' ? 'By Distributor' : 'By Rep';
+  const title =
+    scope === 'distributor' ? 'By Distributor'
+  : scope === 'rep'         ? 'By Rep'
+  : scope === 'product'     ? 'By Product'
+  : 'Overall';
   host.innerHTML = `<div><strong>Interpretation (${title})</strong></div>${blocks}`;
 }
 
@@ -2101,28 +2106,28 @@ function createWeeklyVelocity() {
         const lines = dashboardData.detailed;
         const paid = buildPaidInvoices(lines);
 
-        function seriesByKey(keyGetter) {
-            // Aggregate by ISO week and the chosen key (overall/distributor/rep)
-            const grouped = _.groupBy(paid, inv => `${fmtWeek(d3.timeWeek.floor(inv.posting_date))}::${keyGetter(inv)}`);
+        function seriesByKey(keyGetter, data) {
+            const grouped = _.groupBy(
+                data,
+                inv => `${fmtWeek(d3.timeWeek.floor(inv.posting_date))}::${keyGetter(inv)}`
+            );
             const rows = _.map(grouped, (recs, k) => {
-            const [week, key] = k.split('::');
-            return {
+                const [week, key] = k.split('::');
+                return {
                 week,
                 key,
                 paidInvoices: recs.length,
                 doors: calcDoors(recs),
                 opa: calcOPA(recs),
                 rpd: calcRPD(recs)
-            };
+                };
             });
-            // roll to arrays per key
             const byKey = _.groupBy(rows, r => r.key);
-            // ensure week order
-            for (const k in byKey) {
-            byKey[k] = _.sortBy(byKey[k], r => r.week);
-            }
+            for (const k in byKey) byKey[k] = _.sortBy(byKey[k], r => r.week);
             return byKey;
-        }
+            }
+
+
 
         const scopeEl = document.getElementById('weeklyScope');
         const ctxDoors = document.getElementById('doorsPerWeek').getContext('2d');
@@ -2130,16 +2135,31 @@ function createWeeklyVelocity() {
         const ctxRPD = document.getElementById('rpdPerWeek').getContext('2d');
 
         function render() {
-            const scope = scopeEl.value; // overall | distributor | rep
-            const keyGetter = scope === 'distributor' ? (inv => inv.distributor)
-                            : scope === 'rep' ? (inv => inv.sales_rep || 'Unassigned')
-                            : (() => 'Overall');
+            const scope = scopeEl.value; // overall | distributor | rep | product
 
-            const dataByKey = seriesByKey(keyGetter);
+            // Choose dataset to aggregate
+            let paidScoped = paid;
+            if (scope === 'product') {
+                // Launch SKUs only to keep legend readable
+                paidScoped = paid.filter(inv => newProductsList.includes(inv.product_name));
+            }
 
-            // Build unified week labels (x-axis)
-            const allWeeks = _.uniq(_.flatten(Object.values(dataByKey).map(arr => arr.map(r => r.week)))).sort();
+            // Key getter per scope
+            const keyGetter =
+                (scope === 'distributor') ? (inv => inv.distributor)
+                : (scope === 'rep')         ? (inv => inv.sales_rep || 'Unassigned')
+                : (scope === 'product')     ? (inv => inv.product_name)
+                :                             (() => 'Overall');
 
+            // Build series
+            const dataByKey = seriesByKey(keyGetter, paidScoped);
+
+            // Unified week labels
+            const allWeeks = _.uniq(
+                _.flatMap(Object.values(dataByKey), arr => arr.map(r => r.week))
+            ).sort();
+
+            // Datasets builder
             function dataset(metric) {
                 return Object.entries(dataByKey).map(([k, arr]) => ({
                 label: (scope === 'rep' ? (salesRepMap[String(k)] || 'Unassigned') : k),
@@ -2149,45 +2169,42 @@ function createWeeklyVelocity() {
                 }));
             }
 
-            // (re)draw charts...
+            // Legend visibility: always on for rep/product; otherwise <=6 series
+            const showLegend = (scope === 'rep' || scope === 'product')
+                ? true
+                : (Object.keys(dataByKey).length <= 6);
+
+            // (Re)draw charts
             if (charts.doorsPerWeek) charts.doorsPerWeek.destroy();
-            if (charts.opaPerWeek) charts.opaPerWeek.destroy();
-            if (charts.rpdPerWeek) charts.rpdPerWeek.destroy();
+            if (charts.opaPerWeek)   charts.opaPerWeek.destroy();
+            if (charts.rpdPerWeek)   charts.rpdPerWeek.destroy();
 
             charts.doorsPerWeek = new Chart(ctxDoors, {
                 type: 'line',
                 data: { labels: allWeeks, datasets: dataset('doors') },
-                options: {
-                    plugins:{ legend:{ display: (scope === 'rep') ? true : (Object.keys(dataByKey).length<=6) } },
-                    scales:{ x:{ ticks:{ autoSkip:true, maxTicksLimit:12 } } }
-                }
+                options: { plugins:{ legend:{ display: showLegend } },
+                        scales:{ x:{ ticks:{ autoSkip:true, maxTicksLimit:12 } } } }
             });
             charts.opaPerWeek = new Chart(ctxOPA, {
                 type: 'line',
                 data: { labels: allWeeks, datasets: dataset('opa') },
-                options: {
-                    plugins:{ legend:{ display: (scope === 'rep') ? true : (Object.keys(dataByKey).length<=6) } },
-                    scales:{ x:{ ticks:{ autoSkip:true, maxTicksLimit:12 } } }
-                }
+                options: { plugins:{ legend:{ display: showLegend } },
+                        scales:{ x:{ ticks:{ autoSkip:true, maxTicksLimit:12 } } } }
             });
             charts.rpdPerWeek = new Chart(ctxRPD, {
                 type: 'line',
                 data: { labels: allWeeks, datasets: dataset('rpd') },
-                options: {
-                    plugins:{ legend:{ display: (scope === 'rep') ? true : (Object.keys(dataByKey).length<=6) } },
-                    scales:{ x:{ ticks:{ autoSkip:true, maxTicksLimit:12 } } }
-                }
+                options: { plugins:{ legend:{ display: showLegend } },
+                        scales:{ x:{ ticks:{ autoSkip:true, maxTicksLimit:12 } } } }
             });
 
-            // Acceptance check
+            // Acceptance check — use scoped set
             const weeklySum = _.sumBy(Object.values(dataByKey).flat(), r => r.paidInvoices);
-            const ytdPaid = paid.length;
-            console.log('[Weekly Velocity] acceptance check — weekly sum:', weeklySum, 'YTD paid:', ytdPaid);
+            const ytdPaid   = paidScoped.length;
+            console.log(`[Weekly Velocity:${scope}] acceptance — weekly sum:`, weeklySum, 'YTD paid:', ytdPaid);
 
-
-            // 🔮 NEW: render the narrative text
-            const scopeKey = scope; // 'overall' | 'distributor' | 'rep'
-            renderWeeklyNarrative(scopeKey, allWeeks, dataByKey);
+            // Narrative
+            renderWeeklyNarrative(scope, allWeeks, dataByKey);
             }
 
 
