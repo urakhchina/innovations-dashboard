@@ -1530,51 +1530,65 @@ function nice(num) {
 }
 
 // Summarize one series (arrays of weekly points for doors/opa/rpd with same index order)
+// Summarize one series (arrays of weekly points for doors/opa/rpd with same index order)
 function summarizeSeries(weeks, doors, opa, rpd) {
   const n = weeks.length;
-  if (!n) return { summary: 'No data.', bullets: [] };
+  if (!n) return { summary: 'No data available for this series.', bullets: [] };
 
-  const firstHalf = Math.max(1, Math.floor(n/2));
+  // --- Coverage trend (Doors) ---
+  const firstHalf = Math.max(1, Math.floor(n / 2));
   const earlyDoors = movingAvg(doors.slice(0, firstHalf));
   const lateDoors  = movingAvg(doors.slice(firstHalf));
   const doorsLift  = lateDoors - earlyDoors;
-  const doorsLiftPct = pct(doorsLift, (earlyDoors || 1));
+  const doorsLiftPct = pct(doorsLift, (earlyDoors || 1)); // % change from early to late
 
-  // OPA: baseline ~1.0, count weeks above 1.02 as “repeat order” spikes
+  // --- Frequency (OPA = paid invoices ÷ doors) ---
+  // Treat weeks with OPA > 1.02 as "repeat-order" weeks
   const opaSpikes = opa.filter(v => v > 1.02).length;
 
-  // RPD volatility — coefficient of variation (std/mean)
+  // --- Value per account (RPD = revenue ÷ doors) ---
   const rpdMean = movingAvg(rpd);
   const rpdStd  = Math.sqrt(movingAvg(rpd.map(v => Math.pow(v - rpdMean, 2))));
-  const rpdCv   = rpdMean ? (rpdStd / rpdMean) : 0;
+  const rpdCv   = rpdMean ? (rpdStd / rpdMean) : 0; // volatility via Coefficient of Variation
+  const rpdMax  = Math.max(...rpd);
+  const rpdMaxWeekIdx = rpd.indexOf(rpdMax);
+  const rpdMaxWeek = rpdMaxWeekIdx >= 0 ? weeks[rpdMaxWeekIdx] : '—';
 
-  // Biggest RPD spike
-  const rpdMax = Math.max(...rpd);
-  const rpdMaxWeek = rpd.indexOf(rpdMax) >= 0 ? weeks[rpd.indexOf(rpdMax)] : '—';
-
+  // --- Narrative bullets (teach + interpret) ---
   const bullets = [
-    `Coverage (doors) ${doorsLift >= 0 ? '↑' : '↓'} ${Math.abs(doorsLiftPct).toFixed(0)}% from early to late weeks`,
-    `Repeat-order weeks (OPA>1.02): ${opaSpikes} of ${n}`,
-    `Avg RPD ${nice(rpdMean)}; volatility (CV): ${rpdCv.toFixed(2)}; max spike ${nice(rpdMax)} @ ${rpdMaxWeek}`
+    // Doors definition + growth
+    `Coverage growth: unique active accounts (Doors) increased ${doorsLift >= 0 ? '↑' : '↓'} ${Math.abs(doorsLiftPct).toFixed(0)}% from the first to the last half of the period. ` +
+      `Doors = number of accounts with ≥1 paid invoice in a week.`,
+
+    // OPA definition + repeat-order characterization
+    `Order frequency: repeat-order weeks (Orders Per Account, OPA) > 1.02 occurred ${opaSpikes} of ${n} weeks. ` +
+      `OPA = paid invoices ÷ doors; values above 1 indicate some accounts placed multiple orders in the same week.`,
+
+    // RPD definition + central tendency + volatility + max spike
+    `Value per account: average revenue per active door (RPD) was ${nice(rpdMean)}. ` +
+      `RPD (Revenue Per Door) = total revenue ÷ doors. ` +
+      `Volatility (CV) = ${rpdCv.toFixed(2)} ${rpdCv > 0.6 ? '(high variability)' : '(stable)'}; ` +
+      `largest per-door revenue spike was ${nice(rpdMax)} in ${rpdMaxWeek}.`
   ];
 
-  const trendPhrase = doorsLift > 0
-    ? `coverage is expanding`
-    : doorsLift < 0
-      ? `coverage softened`
-      : `coverage flat`;
+  // --- One-line summary ---
+  const trendPhrase =
+    doorsLift > 0 ? `coverage is expanding (more doors each week)` :
+    doorsLift < 0 ? `coverage has softened (fewer doors active later)` :
+                    `coverage is flat`;
 
-  const freqPhrase = opaSpikes > 0
-    ? `some weeks show multi-order behavior`
-    : `most weeks show single orders per door`;
+  const freqPhrase =
+    opaSpikes > 0 ? `some weeks show accounts placing multiple orders` :
+                    `most weeks show only one order per account`;
 
-  const valuePhrase = rpdCv > 0.6
-    ? `per-door revenue is volatile (bulk buys/promos)`
-    : `per-door revenue is relatively stable`;
+  const valuePhrase =
+    rpdCv > 0.6 ? `average revenue per door (RPD) is volatile, often driven by bulk buys or promotions` :
+                  `average revenue per door (RPD) is relatively stable`;
 
   const summary = `Overall, ${trendPhrase}; ${freqPhrase}; ${valuePhrase}.`;
   return { summary, bullets };
 }
+
 
 // Render the narrative into the box; for distributors/reps show the top 3 by doors
 function renderWeeklyNarrative(scope, weeks, dataByKey) {
