@@ -2126,9 +2126,16 @@ function populateTables() {
         
         function generateAdvancedInsights() {
             const insights = document.getElementById('advancedInsights');
+
+            // Keep total revenue for the other insights
             const totalRevenue = _.sumBy(dashboardData.monthly, 'revenue');
-            const avgOrderValue = totalRevenue / _.sumBy(dashboardData.monthly, 'txn_count');
-            
+
+            // ✅ Compute AOV from PAID INVOICES (invoice-level), not line items
+            const paidInvoices = buildPaidInvoices(dashboardData.detailed); // returns only rev>0 invoices
+            const invoiceAOV = paidInvoices.length
+                ? _.sumBy(paidInvoices, i => Number(i.revenue) || 0) / paidInvoices.length
+                : 0;
+
             const topProduct = _.chain(dashboardData.monthly)
                 .groupBy('product_name')
                 .mapValues(records => _.sumBy(records, 'revenue'))
@@ -2136,7 +2143,7 @@ function populateTables() {
                 .orderBy([1], ['desc'])
                 .first()
                 .value();
-            
+
             const topDistributor = _.chain(dashboardData.distributor)
                 .groupBy('distributor')
                 .mapValues(records => _.sumBy(records, 'revenue_ytd'))
@@ -2144,32 +2151,35 @@ function populateTables() {
                 .orderBy([1], ['desc'])
                 .first()
                 .value();
-            
+
             const multiSKUAccounts = _.chain(dashboardData.accounts)
                 .groupBy('canonical_code')
                 .filter(records => _.uniq(records.map(r => r.product_name)).length > 1)
                 .value().length;
-            
+
             const totalAccounts = _.uniqBy(dashboardData.accounts, 'canonical_code').length;
-            const multiSKURate = ((multiSKUAccounts / totalAccounts) * 100).toFixed(1);
-            
+            const multiSKURate = totalAccounts ? ((multiSKUAccounts / totalAccounts) * 100).toFixed(1) : '0.0';
+
             insights.innerHTML = `
                 <div class="insight-item">
-                    <strong>🎯 Top Performer:</strong> ${topProduct[0]} leads with $${topProduct[1].toLocaleString('en-US', {maximumFractionDigits: 0})} in revenue, representing ${((topProduct[1] / totalRevenue) * 100).toFixed(1)}% of total launch revenue.
+                <strong>🎯 Top Performer:</strong> ${topProduct[0]} leads with $${topProduct[1].toLocaleString('en-US', {maximumFractionDigits: 0})} in revenue,
+                representing ${((topProduct[1] / totalRevenue) * 100).toFixed(1)}% of total launch revenue.
                 </div>
                 <div class="insight-item">
-                    <strong>🏢 Distribution Excellence:</strong> ${topDistributor[0]} dominates with ${((topDistributor[1] / totalRevenue) * 100).toFixed(1)}% market share, suggesting strong channel alignment.
+                <strong>🏢 Distribution Excellence:</strong> ${topDistributor[0]} dominates with ${((topDistributor[1] / totalRevenue) * 100).toFixed(1)}% market share, suggesting strong channel alignment.
                 </div>
                 <div class="insight-item">
-                    <strong>🔄 Cross-Sell Opportunity:</strong> Only ${multiSKURate}% of accounts carry multiple new products, indicating significant upsell potential worth $${(totalRevenue * 0.35).toLocaleString('en-US', {maximumFractionDigits: 0})}.
+                <strong>🔄 Cross-Sell Opportunity:</strong> Only ${multiSKURate}% of accounts carry multiple new products,
+                indicating significant upsell potential worth $${(totalRevenue * 0.35).toLocaleString('en-US', {maximumFractionDigits: 0})}.
                 </div>
                 <div class="insight-item">
-                    <strong>💰 Value Optimization:</strong> Average order value of $${avgOrderValue.toFixed(2)} is 12% above baseline, driven primarily by Magnesium product bundles.
+                <strong>💰 Value Optimization:</strong> Average order value (invoice) is $${invoiceAOV.toFixed(2)}.
                 </div>
             `;
-            
+
             createHeatmap();
         }
+
         
         function createHeatmap() {
             const heatmapContainer = document.getElementById('heatmap');
