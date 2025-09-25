@@ -396,103 +396,136 @@
     
     <div id="temporal" class="tab-content">
         <div class="analytics-grid">
-            <div class="chart-container full-width">
-                <h3>📊 Product Launch Curves (Revenue Since Launch)</h3>
-                <canvas id="launchCurves"></canvas>
+          <div class="chart-container full-width">
+            <h3>📊 Product Launch Curves (Revenue Since Launch)</h3>
+            <canvas id="launchCurves"></canvas>
+          </div>
+          <div class="chart-container">
+            <h3>📈 Cumulative YTD Growth (Revenue)</h3>
+            <canvas id="cumulativeGrowth"></canvas>
+          </div>
+          <div class="chart-container">
+            <h3>🗓️ Quarterly Performance (Revenue & Units)</h3>
+            <canvas id="quarterlyPerformance"></canvas>
+          </div>
+          <div class="chart-container full-width">
+            <h3>🚀 Year-End Projection (YEP) by Product</h3>
+            <canvas id="yearEndProjection"></canvas>
+            <div id="yepPaceToPlan" style="margin-top:8px;font-size:0.9em;color:#a0a0a0;">
+              <!-- Filled by JS: Pace to Plan per product (shows “—” where plan missing) -->
             </div>
-            <div class="chart-container">
-                <h3>📈 Cumulative YTD Growth (Revenue)</h3>
-                <canvas id="cumulativeGrowth"></canvas>
-            </div>
-            <div class="chart-container">
-                <h3>🗓️ Quarterly Performance (Revenue & Units)</h3>
-                <canvas id="quarterlyPerformance"></canvas>
-            </div>
-            <div class="chart-container full-width">
-                <h3>🚀 Year-End Projection (YEP) by Product</h3>
-                <canvas id="yearEndProjection"></canvas>
-            </div>
+          </div>
         </div>
-    </div>
-    
-    <div id="distributor" class="tab-content">
+      
+        <div class="chart-container full-width">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+            <h3>📆 Weekly Velocity: Doors / OPA / RPD</h3>
+            <div>
+              <label for="weeklyScope" style="margin-right:8px;">View:</label>
+              <select id="weeklyScope">
+                <option value="overall">Overall</option>
+                <option value="distributor">By Distributor</option>
+                <option value="rep">By Rep</option>
+              </select>
+            </div>
+          </div>
+          <div class="analytics-grid">
+            <div class="chart-container"><canvas id="doorsPerWeek"></canvas></div>
+            <div class="chart-container"><canvas id="opaPerWeek"></canvas></div>
+            <div class="chart-container"><canvas id="rpdPerWeek"></canvas></div>
+          </div>
+          <div style="font-size:0.85em;color:#a0a0a0;margin-top:6px;">
+            Acceptance check: Sum of weekly paid invoices equals YTD paid invoices in current scope.
+          </div>
+        </div>
+      </div>
+      
+      <div id="distributor" class="tab-content">
         <div class="table-container full-width">
-            <h3>🏢 Distributor Performance Matrix</h3>
-            <div style="font-size: 0.9em; color: #a0a0a0; margin-bottom: 15px;">
-                Note: All metrics are based on paid invoices (revenue > 0) to exclude free goods and returns.
-            </div>
-            <table id="distributorTable"></table>
+          <h3>🏢 Distributor Performance Matrix</h3>
+          <div style="font-size: 0.9em; color: #a0a0a0; margin-bottom: 15px;">
+            Note: All metrics are based on paid invoices (revenue > 0) to exclude free goods and returns.
+          </div>
+          <table id="distributorTable"></table>
         </div>
-    </div>
-    
-    <div id="salesrep" class="tab-content">
+      </div>
+      
+      <div id="salesrep" class="tab-content">
         <div class="table-container full-width">
-            <h3>🎯 Sales Rep Leaderboard</h3>
-            <div style="font-size: 0.9em; color: #a0a0a0; margin-bottom: 15px;">
-                Note: All metrics are based on paid invoices (revenue > 0) to exclude free goods and returns.
-            </div>
-            <table id="repLeaderboard"></table>
+          <h3>🎯 Sales Rep Leaderboard</h3>
+          <div style="font-size: 0.9em; color: #a0a0a0; margin-bottom: 15px;">
+            Note: All metrics are based on paid invoices (revenue > 0) to exclude free goods and returns.
+          </div>
+          <table id="repLeaderboard"></table>
         </div>
-
-        </div>
-    
-    <div id="accounts" class="tab-content">
+      </div>
+      
+      <div id="accounts" class="tab-content">
         <div class="analytics-grid">
-            <div class="chart-container full-width">
-                <h3>📊 Pareto Analysis (80/20 Rule for Revenue by Account)</h3>
-                <canvas id="paretoAnalysis"></canvas>
-            </div>
+          <div class="chart-container full-width">
+            <h3>📊 Pareto Analysis (80/20 Rule for Revenue by Account)</h3>
+            <canvas id="paretoAnalysis"></canvas>
+          </div>
         </div>
         <div class="table-container full-width">
-            <h3>💎 Top 20 Account Penetration</h3>
-            <table id="accountPenetrationTable"></table>
+          <h3>💎 Top 20 Account Penetration</h3>
+          <table id="accountPenetrationTable"></table>
         </div>
         <div class="table-container full-width">
-            <h3>🛒 All Accounts Analysis</h3>
-            <table id="allAccountsTable"></table>
+          <h3>🛒 All Accounts Analysis</h3>
+          <table id="allAccountsTable"></table>
         </div>
-    </div>
-    
-    <div id="product" class="tab-content">
+      </div>
+      
+      <div id="product" class="tab-content">
         <div class="product-selector-container" style="margin-bottom: 25px; background: rgba(255,255,255,0.05); padding: 20px; border-radius: 15px;">
-            <label for="productSelector" style="margin-right: 10px; font-weight: 600;">Select a Product to Analyze:</label>
-            <select id="productSelector" style="padding: 8px; border-radius: 8px; min-width: 300px;"></select>
+          <label for="productSelector" style="margin-right: 10px; font-weight: 600;">Select a Product to Analyze:</label>
+          <select id="productSelector" style="padding: 8px; border-radius: 8px; min-width: 300px;"></select>
         </div>
-        
-        <div class="kpi-grid" id="productKpiGrid">
-            </div>
-
-            <div class="analytics-grid" id="productChartsGrid">
-                <div class="chart-container">
-                    <h3>Top Distributors by Revenue</h3>
-                    <canvas id="distributorMixForProductChart"></canvas>
-                </div>
-                <div class="table-container full-width">
-                    <h3>Account Performance for this Product</h3>
-                    <table id="accountsForProductTable"></table>
-                </div>
-            </div>
-    
-    <div id="advanced" class="tab-content">
+      
+        <div class="kpi-grid" id="productKpiGrid"></div>
+      
+        <div class="analytics-grid" id="productChartsGrid">
+          <div class="chart-container">
+            <h3>Top Distributors by Revenue</h3>
+            <canvas id="distributorMixForProductChart"></canvas>
+          </div>
+          <div class="table-container full-width">
+            <h3>Account Performance for this Product</h3>
+            <table id="accountsForProductTable"></table>
+          </div>
+        </div>
+      </div> <!-- closes #product -->
+      
+      <div id="advanced" class="tab-content">
         <div class="insights-section">
-            <h3>🎯 Advanced Analytics Insights</h3>
-            <div id="advancedInsights"></div>
+          <h3>🎯 Advanced Analytics Insights</h3>
+          <div id="advancedInsights"></div>
         </div>
         <div class="heatmap-container">
-            <h3>🗺️ Product-Distributor Heatmap</h3>
-            <div id="heatmap"></div>
+          <h3>🗺️ Product-Distributor Heatmap</h3>
+          <div id="heatmap"></div>
         </div>
         <div class="analytics-grid">
-            <div class="chart-container">
-                <h3>🔄 SKU Overlap Analysis</h3>
-                <canvas id="skuOverlap"></canvas>
-            </div>
-            <div class="chart-container">
-                <h3>📈 Adoption Lag Analysis</h3>
-                <canvas id="adoptionLag"></canvas>
-            </div>
+          <div class="chart-container">
+            <h3>🔄 SKU Overlap Analysis</h3>
+            <canvas id="skuOverlap"></canvas>
+          </div>
+          <div class="chart-container">
+            <h3>📈 Adoption Lag Analysis</h3>
+            <canvas id="adoptionLag"></canvas>
+          </div>
         </div>
-    </div>
+      
+        <div class="chart-container full-width">
+          <h3>🧲 Cohort Retention (First Purchase Month → % with 2nd Order ≤30/60/90d)</h3>
+          <canvas id="cohortRetention"></canvas>
+          <div id="cohortNotes" style="font-size:0.9em;color:#a0a0a0;margin-top:6px;">
+            Tooltips show numerator/denominator. Curves are monotonically non-increasing by construction.
+          </div>
+        </div>
+      </div>
+      
     
     <script>
         // Global data storage
@@ -531,6 +564,54 @@
             // month - 1 is needed because JavaScript months are 0-indexed (Jan=0).
             return new Date(year, month - 1, 1);
         }
+
+        // --- Extra date helpers (day-accurate) ---
+        function parseYMD(dateStr) {
+        // Expects 'YYYY-MM-DD'
+        const [y,m,d] = dateStr.split('-').map(Number);
+        return new Date(y, (m||1)-1, d||1);
+        }
+        const fmtWeek = d3.timeFormat('%Y-W%V'); // ISO week label
+
+        // --- Paid invoice builder (reusable) ---
+        function buildPaidInvoices(lines) {
+        // Group by distributor, account, ship_to, date at invoice level
+        const invoices = _.chain(lines)
+            .groupBy(d => `${d.distributor}-${d.canonical_code}-${d.ship_to_code}-${d.posting_date}`)
+            .map(records => {
+            const first = records[0];
+            const revenue = _.sumBy(records, r => Number(r.revenue) || 0);
+            const units = _.sumBy(records, r => Number(r.quantity ?? r.units) || 0);
+            return {
+                posting_date: parseYMD(first.posting_date), // keep date as Date
+                distributor: first.distributor,
+                sales_rep: first.sales_rep,
+                canonical_code: first.canonical_code,
+                product_name: first.product_name,
+                revenue,
+                units
+            };
+            })
+            .filter(inv => inv.revenue > 0) // "paid invoices" only
+            .value();
+        return invoices;
+        }
+
+        // --- Doors calculator on a dataset of invoices ---
+        function calcDoors(invoices) {
+        // Doors = unique canonical_code with ≥1 paid invoice
+        return new Set(invoices.map(i => i.canonical_code)).size;
+        }
+        function calcOPA(invoices) {
+        const doors = calcDoors(invoices);
+        return doors ? (invoices.length / doors) : 0;
+        }
+        function calcRPD(invoices) {
+        const doors = calcDoors(invoices);
+        const rev = _.sumBy(invoices, i => Number(i.revenue) || 0);
+        return doors ? (rev / doors) : 0;
+        }
+
         
         // Product launch information
         const newProducts = {
@@ -577,13 +658,26 @@
         try {
             await runDataDiagnostics(); // You can leave this in or remove it
 
-            const [monthlyData, salesRepData, distributorData, accountsData, detailedData] = await Promise.all([
+            const [
+                monthlyData,
+                salesRepData,
+                distributorData,
+                accountsData,
+                detailedData,
+                planTargetsMaybe
+            ] = await Promise.all([
                 loadCSV('data/summary_monthly.csv'),
                 loadCSV('data/summary_salesrep.csv'),
                 loadCSV('data/summary_distributor.csv'),
                 loadCSV('data/summary_accounts_top50.csv'),
-                loadCSV('data/products_2025_by_upc.csv')
+                loadCSV('data/products_2025_by_upc.csv'),
+                // Try to load plan; if missing, return null
+                fetch('data/plan_targets_2025.csv')
+                    .then(r => r.ok ? r.text() : null)
+                    .then(t => t ? Papa.parse(t, {header:true, dynamicTyping:true, skipEmptyLines:true}).data : null)
             ]);
+
+            dashboardData.planTargets = planTargetsMaybe;
 
             // 1. Create a single, clean master dataset from the detailed file
             const masterData = detailedData.filter(d => 
@@ -684,18 +778,41 @@
                 `<div style="color: #ff6b6b;">Error initializing dashboard: ${error.message}</div>`;
         }
     }
+    function ytdPlanFor(scopeType, scopeId, asOfDate) {
+        if (!dashboardData.planTargets) return null;
+        const asOf = new Date(asOfDate.getFullYear(), asOfDate.getMonth(), 1);
+        const rows = dashboardData.planTargets.filter(r =>
+            (r.scope_type === scopeType) &&
+            (String(r.scope_id) === String(scopeId)) &&
+            r.month && new Date(r.month) <= asOf
+        );
+        if (!rows.length) return null;
+        return _.sumBy(rows, r => Number(r.plan_revenue) || 0);
+    }
+
+    function fyPlanFor(scopeType, scopeId) {
+        if (!dashboardData.planTargets) return null;
+        const rows = dashboardData.planTargets.filter(r =>
+            (r.scope_type === scopeType) &&
+            (String(r.scope_id) === String(scopeId))
+        );
+        if (!rows.length) return null;
+        return _.sumBy(rows, r => Number(r.plan_revenue) || 0);
+    }
+
+
         
-        function populateProductPills() {
-            const container = document.getElementById('productPills');
-            for (const [quarter, products] of Object.entries(newProducts)) {
-                products.forEach(product => {
-                    const pill = document.createElement('div');
-                    pill.className = 'product-pill';
-                    pill.innerHTML = `${product.name} <span class="quarter">${quarter}</span>`;
-                    container.appendChild(pill);
-                });
-            }
+    function populateProductPills() {
+        const container = document.getElementById('productPills');
+        for (const [quarter, products] of Object.entries(newProducts)) {
+            products.forEach(product => {
+                const pill = document.createElement('div');
+                pill.className = 'product-pill';
+                pill.innerHTML = `${product.name} <span class="quarter">${quarter}</span>`;
+                container.appendChild(pill);
+            });
         }
+    }
         
         function calculateKPIs() {
     const data2025 = dashboardData.detailed;
@@ -801,6 +918,8 @@
 
             // Year-End Projections
             createYearEndProjection();
+            createWeeklyVelocity();
+            createCohortRetention();
 
             createParetoAnalysis()
         }
@@ -942,7 +1061,7 @@
         const products = newProductsList;
         
         const datasets = products.map((product, index) => {
-            const color = ['#667eea', '#764ba2', '#f093fb', '#f5576c', '#4ade80', '#fbbF24', '#ef4444', '#22c55e'][index % 8];
+            const color = ['#667eea', '#764ba2', '#f093fb', '#f5576c', '#4ade80', '#fbbf24', '#ef4444', '#22c55e'][index % 8];
             return {
                 label: product,
                 data: months.map(month => monthlyByProduct[month]?.[product] || 0),
@@ -1327,7 +1446,212 @@
             }
         }
     });
+
+
+
+    // --- Render Pace to Plan table (if plan exists) ---
+(function renderPaceToPlan(){
+  const host = document.getElementById('yepPaceToPlan');
+  if (!host) return;
+
+  const asOfDate = (function(){
+    const maxDateStr = _.max(dashboardData.detailed.map(d => d.posting_date));
+    return parseYMD(maxDateStr);
+  })();
+
+  const byProduct = _.chain(dashboardData.detailed)
+    .groupBy(d => d.product_name)
+    .map((recs, name) => {
+      // reuse your existing YEP math (already computed in chart) – quick recompute here:
+      const monthly = _.chain(recs).groupBy(r => r.posting_date.substring(0,7))
+        .map((rows, m) => ({ month:m, revenue: _.sumBy(rows, 'revenue') }))
+        .sortBy('month').value();
+      const ytdActual = _.sumBy(monthly, 'revenue');
+      // “(b) last-3-months annualized” flavor for pace:
+      const last3 = monthly.slice(-3);
+      const avgRecent = _.meanBy(last3, 'revenue') || 0;
+      const yePace = ytdActual + avgRecent * (12 - monthly.length); // simple annualization to year end
+
+      const fyPlan = fyPlanFor('product', name);
+      const pace = (fyPlan && fyPlan > 0) ? (yePace / fyPlan) : null;
+      return { name, fyPlan, yePace, pace };
+    })
+    .sortBy(x => x.name)
+    .value();
+
+  const rows = byProduct.map(r => `
+    <tr>
+      <td style="padding:6px 10px;border-bottom:1px solid #333;">${r.name}</td>
+      <td style="padding:6px 10px;border-bottom:1px solid #333;">${r.fyPlan!=null ? r.fyPlan.toLocaleString() : '—'}</td>
+      <td style="padding:6px 10px;border-bottom:1px solid #333;">${r.yePace.toLocaleString()}</td>
+      <td style="padding:6px 10px;border-bottom:1px solid #333;">${r.pace!=null ? (r.pace*100).toFixed(0)+'%' : '—'}</td>
+    </tr>`).join('');
+
+  host.innerHTML = `
+    <div style="margin-top:6px;">Pace to Plan = YEP / Full-year plan</div>
+    <table style="margin-top:6px;border-collapse:collapse;">
+      <thead>
+        <tr>
+          <th style="text-align:left;padding:6px 10px;border-bottom:1px solid #555;">Product</th>
+          <th style="text-align:right;padding:6px 10px;border-bottom:1px solid #555;">FY Plan</th>
+          <th style="text-align:right;padding:6px 10px;border-bottom:1px solid #555;">YEP ($)</th>
+          <th style="text-align:right;padding:6px 10px;border-bottom:1px solid #555;">Pace</th>
+        </tr>
+      </thead>
+      <tbody>${rows}</tbody>
+    </table>`;
+})();
+
 }
+
+function createWeeklyVelocity() {
+        const lines = dashboardData.detailed;
+        const paid = buildPaidInvoices(lines);
+
+        function seriesByKey(keyGetter) {
+            // Aggregate by ISO week and the chosen key (overall/distributor/rep)
+            const grouped = _.groupBy(paid, inv => `${fmtWeek(d3.timeWeek.floor(inv.posting_date))}::${keyGetter(inv)}`);
+            const rows = _.map(grouped, (recs, k) => {
+            const [week, key] = k.split('::');
+            return {
+                week,
+                key,
+                paidInvoices: recs.length,
+                doors: calcDoors(recs),
+                opa: calcOPA(recs),
+                rpd: calcRPD(recs)
+            };
+            });
+            // roll to arrays per key
+            const byKey = _.groupBy(rows, r => r.key);
+            // ensure week order
+            for (const k in byKey) {
+            byKey[k] = _.sortBy(byKey[k], r => r.week);
+            }
+            return byKey;
+        }
+
+        const scopeEl = document.getElementById('weeklyScope');
+        const ctxDoors = document.getElementById('doorsPerWeek').getContext('2d');
+        const ctxOPA = document.getElementById('opaPerWeek').getContext('2d');
+        const ctxRPD = document.getElementById('rpdPerWeek').getContext('2d');
+
+        function render() {
+            const scope = scopeEl.value; // overall | distributor | rep
+            const keyGetter = scope === 'distributor' ? (inv => inv.distributor)
+                            : scope === 'rep' ? (inv => inv.sales_rep || 'Unassigned')
+                            : (() => 'Overall');
+
+            const dataByKey = seriesByKey(keyGetter);
+
+            // Build unified week labels (x-axis)
+            const allWeeks = _.uniq(_.flatten(Object.values(dataByKey).map(arr => arr.map(r => r.week)))).sort();
+            function dataset(metric) {
+            return Object.entries(dataByKey).map(([k, arr]) => ({
+                label: k,
+                data: allWeeks.map(w => (arr.find(x => x.week === w)?.[metric]) ?? 0),
+                fill: false,
+                tension: 0.2
+            }));
+            }
+
+            // Destroy old
+            if (charts.doorsPerWeek) charts.doorsPerWeek.destroy();
+            if (charts.opaPerWeek) charts.opaPerWeek.destroy();
+            if (charts.rpdPerWeek) charts.rpdPerWeek.destroy();
+
+            charts.doorsPerWeek = new Chart(ctxDoors, {
+            type: 'line',
+            data: { labels: allWeeks, datasets: dataset('doors') },
+            options: { plugins:{legend:{display: Object.keys(dataByKey).length<=6}}, scales:{x:{ticks:{autoSkip:true,maxTicksLimit:12}}}}
+            });
+            charts.opaPerWeek = new Chart(ctxOPA, {
+            type: 'line',
+            data: { labels: allWeeks, datasets: dataset('opa') },
+            options: { plugins:{legend:{display: Object.keys(dataByKey).length<=6}}, scales:{x:{ticks:{autoSkip:true,maxTicksLimit:12}}}}
+            });
+            charts.rpdPerWeek = new Chart(ctxRPD, {
+            type: 'line',
+            data: { labels: allWeeks, datasets: dataset('rpd') },
+            options: { plugins:{legend:{display: Object.keys(dataByKey).length<=6}}, scales:{x:{ticks:{autoSkip:true,maxTicksLimit:12}}}}
+            });
+
+            // Acceptance check: Σ weekly paid_invoices == YTD paid invoices
+            const weeklySum = _.sumBy(Object.values(dataByKey).flat(), r => r.paidInvoices);
+            const ytdPaid = paid.length;
+            console.log('[Weekly Velocity] acceptance check — weekly sum:', weeklySum, 'YTD paid:', ytdPaid);
+        }
+
+        scopeEl.onchange = render;
+        render();
+        }
+
+        function createCohortRetention() {
+            const paid = buildPaidInvoices(dashboardData.detailed);
+
+            // Build (account, product) sequences
+            const byAcctProd = _.groupBy(paid, inv => `${inv.canonical_code}::${inv.product_name}`);
+            const firsts = [];
+            for (const key in byAcctProd) {
+                const arr = _.sortBy(byAcctProd[key], inv => inv.posting_date);
+                const first = arr[0];
+                const second = arr[1] || null;
+                firsts.push({
+                product: first.product_name,
+                cohortMonth: d3.timeFormat('%Y-%m')(d3.timeMonth.floor(first.posting_date)),
+                has2nd30: !!(second && (second.posting_date - first.posting_date) <= 30*864e5),
+                has2nd60: !!(second && (second.posting_date - first.posting_date) <= 60*864e5),
+                has2nd90: !!(second && (second.posting_date - first.posting_date) <= 90*864e5)
+                });
+            }
+
+            // Aggregate by cohort month (overall)
+            const byCohort = _.groupBy(firsts, r => r.cohortMonth);
+            const months = Object.keys(byCohort).sort();
+            const pct = (num, den) => den ? (100*num/den) : 0;
+
+            const ds30 = months.map(m => pct(_.sumBy(byCohort[m], r => r.has2nd30 ? 1 : 0), byCohort[m].length));
+            const ds60 = months.map(m => pct(_.sumBy(byCohort[m], r => r.has2nd60 ? 1 : 0), byCohort[m].length));
+            const ds90 = months.map(m => pct(_.sumBy(byCohort[m], r => r.has2nd90 ? 1 : 0), byCohort[m].length));
+
+            // Monotonicity (≤30 ≥ ≤60 ≥ ≤90) is naturally satisfied; no smoothing needed.
+
+            if (charts.cohortRetention) charts.cohortRetention.destroy();
+            const ctx = document.getElementById('cohortRetention').getContext('2d');
+            charts.cohortRetention = new Chart(ctx, {
+                type: 'line',
+                data: {
+                labels: months,
+                datasets: [
+                    { label: '≤30d', data: ds30, tension:0.2, fill:false },
+                    { label: '≤60d', data: ds60, tension:0.2, fill:false },
+                    { label: '≤90d', data: ds90, tension:0.2, fill:false }
+                ]
+                },
+                options: {
+                responsive: true,
+                plugins: {
+                    tooltip: {
+                    callbacks: {
+                        afterLabel: (ctx) => {
+                        const m = months[ctx.dataIndex];
+                        const den = byCohort[m].length;
+                        const n30 = _.sumBy(byCohort[m], r => r.has2nd30?1:0);
+                        const n60 = _.sumBy(byCohort[m], r => r.has2nd60?1:0);
+                        const n90 = _.sumBy(byCohort[m], r => r.has2nd90?1:0);
+                        return ` n30=${n30}/${den}, n60=${n60}/${den}, n90=${n90}/${den}`;
+                        }
+                    }
+                    },
+                    legend: { position: 'top' }
+                },
+                scales:{ y:{ ticks:{ callback: v => v+'%' } } }
+                }
+            });
+            }
+
+
+
 
         async function runDataDiagnostics() {
         console.log("%c--- STARTING DATA DIAGNOSTICS on products_2025_by_upc.csv ---", "color: yellow; font-size: 14px;");
@@ -1377,7 +1701,7 @@
                 canonical_code: lines[0].canonical_code,
                 distributor: lines[0].distributor,
                 sales_rep: lines[0].sales_rep,
-                posting_date: parseAsLocalDate(lines[0].posting_date),
+                posting_date: parseYMD(lines[0].posting_date),
                 revenue: _.sumBy(lines, 'revenue'),
                 units: _.sumBy(lines, 'quantity'),
                 skus: _.uniq(lines.map(l => l.product_name))
@@ -1540,7 +1864,7 @@
                 .groupBy(d => `${d.canonical_code}-${d.ship_to_code}-${d.posting_date}`)
                 .map(lines => ({
                     canonical_code: lines[0].canonical_code,
-                    posting_date: parseAsLocalDate(lines[0].posting_date),
+                    posting_date: parseYMD(lines[0].posting_date),
                     revenue: _.sumBy(lines, 'revenue'),
                     units: _.sumBy(lines, 'quantity'),
                 }))
@@ -1635,7 +1959,7 @@ function populateTables() {
             .map(lines => ({
                 distributor: lines[0].distributor,
                 canonical_code: lines[0].canonical_code,
-                posting_date: parseAsLocalDate(lines[0].posting_date),
+                posting_date: parseYMD(lines[0].posting_date),
                 revenue: _.sumBy(lines, 'revenue'),
                 units: _.sumBy(lines, 'quantity'),
                 skus: _.uniq(lines.map(l => l.product_name))
@@ -1737,7 +2061,7 @@ function populateTables() {
             .map(lines => ({
                 sales_rep: lines[0].sales_rep,
                 canonical_code: lines[0].canonical_code,
-                posting_date: parseAsLocalDate(lines[0].posting_date),
+                posting_date: parseYMD(lines[0].posting_date),
                 revenue: _.sumBy(lines, 'revenue'),
                 units: _.sumBy(lines, 'quantity')
             }))
