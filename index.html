@@ -437,6 +437,16 @@
           <div style="font-size:0.85em;color:#a0a0a0;margin-top:6px;">
             Acceptance check: Sum of weekly paid invoices equals YTD paid invoices in current scope.
           </div>
+          <div id="weeklyNarrative" style="
+          margin-top:10px;
+          padding:12px 14px;
+          border-radius:10px;
+          background:rgba(255,255,255,0.04);
+          color:#cfd6e4;
+          line-height:1.4;
+          font-size:0.95em;">
+          <!-- Filled by JS -->
+        </div>
         </div>
       </div>
       
@@ -1504,6 +1514,125 @@
 
 }
 
+// ---------- Narrative helpers ----------
+function movingAvg(arr) {
+  if (!arr.length) return 0;
+  return _.sum(arr) / arr.length;
+}
+function pct(a, b) { return b ? (100 * a / b) : 0; }
+function nice(num) {
+  if (num == null || isNaN(num)) return '—';
+  if (Math.abs(num) >= 1000) return '$' + Math.round(num).toLocaleString();
+  if (num >= 100) return '$' + Math.round(num).toLocaleString();
+  if (num >= 10) return '$' + num.toFixed(1);
+  if (num > 1) return '$' + num.toFixed(2);
+  return (typeof num === 'number') ? num.toFixed(2) : String(num);
+}
+
+// Summarize one series (arrays of weekly points for doors/opa/rpd with same index order)
+function summarizeSeries(weeks, doors, opa, rpd) {
+  const n = weeks.length;
+  if (!n) return { summary: 'No data.', bullets: [] };
+
+  const firstHalf = Math.max(1, Math.floor(n/2));
+  const earlyDoors = movingAvg(doors.slice(0, firstHalf));
+  const lateDoors  = movingAvg(doors.slice(firstHalf));
+  const doorsLift  = lateDoors - earlyDoors;
+  const doorsLiftPct = pct(doorsLift, (earlyDoors || 1));
+
+  // OPA: baseline ~1.0, count weeks above 1.02 as “repeat order” spikes
+  const opaSpikes = opa.filter(v => v > 1.02).length;
+
+  // RPD volatility — coefficient of variation (std/mean)
+  const rpdMean = movingAvg(rpd);
+  const rpdStd  = Math.sqrt(movingAvg(rpd.map(v => Math.pow(v - rpdMean, 2))));
+  const rpdCv   = rpdMean ? (rpdStd / rpdMean) : 0;
+
+  // Biggest RPD spike
+  const rpdMax = Math.max(...rpd);
+  const rpdMaxWeek = rpd.indexOf(rpdMax) >= 0 ? weeks[rpd.indexOf(rpdMax)] : '—';
+
+  const bullets = [
+    `Coverage (doors) ${doorsLift >= 0 ? '↑' : '↓'} ${Math.abs(doorsLiftPct).toFixed(0)}% from early to late weeks`,
+    `Repeat-order weeks (OPA>1.02): ${opaSpikes} of ${n}`,
+    `Avg RPD ${nice(rpdMean)}; volatility (CV): ${rpdCv.toFixed(2)}; max spike ${nice(rpdMax)} @ ${rpdMaxWeek}`
+  ];
+
+  const trendPhrase = doorsLift > 0
+    ? `coverage is expanding`
+    : doorsLift < 0
+      ? `coverage softened`
+      : `coverage flat`;
+
+  const freqPhrase = opaSpikes > 0
+    ? `some weeks show multi-order behavior`
+    : `most weeks show single orders per door`;
+
+  const valuePhrase = rpdCv > 0.6
+    ? `per-door revenue is volatile (bulk buys/promos)`
+    : `per-door revenue is relatively stable`;
+
+  const summary = `Overall, ${trendPhrase}; ${freqPhrase}; ${valuePhrase}.`;
+  return { summary, bullets };
+}
+
+// Render the narrative into the box; for distributors/reps show the top 3 by doors
+function renderWeeklyNarrative(scope, weeks, dataByKey) {
+  const host = document.getElementById('weeklyNarrative');
+  if (!host) return;
+
+  const keys = Object.keys(dataByKey);
+  if (!keys.length) { host.innerHTML = 'No weekly data.'; return; }
+
+  // Build comparable arrays for each key
+  const records = keys.map(k => {
+    const arr = dataByKey[k];
+    // arrays aligned to "weeks" master list
+    const doors = weeks.map(w => (arr.find(x => x.week === w)?.doors) ?? 0);
+    const opa   = weeks.map(w => (arr.find(x => x.week === w)?.opa)   ?? 1);
+    const rpd   = weeks.map(w => (arr.find(x => x.week === w)?.rpd)   ?? 0);
+    const paidInvoices = weeks.map(w => (arr.find(x => x.week === w)?.paidInvoices) ?? 0);
+    const doorsSum = _.sum(doors);
+    return { key: k, doors, opa, rpd, paidInvoices, doorsSum };
+  });
+
+  // For “overall” just one line
+  if (scope === 'overall') {
+    const r = records[0];
+    const s = summarizeSeries(weeks, r.doors, r.opa, r.rpd);
+    host.innerHTML = `
+      <div><strong>Interpretation (Overall)</strong></div>
+      <div style="margin-top:6px;">${s.summary}</div>
+      <ul style="margin:6px 0 0 18px;">
+        ${s.bullets.map(b => `<li>${b}</li>`).join('')}
+      </ul>`;
+    return;
+  }
+
+  // Otherwise, pick top 3 by doorsSum
+  const top = _.take(_.orderBy(records, ['doorsSum'], ['desc']), 3);
+
+  function labelFor(k) {
+    return (scope === 'rep') ? (salesRepMap[String(k)] || 'Unassigned') : k;
+    }
+
+  const blocks = top.map(rec => {
+    const s = summarizeSeries(weeks, rec.doors, rec.opa, rec.rpd);
+    return `
+      <div style="margin-top:8px;">
+        <div><strong>${labelFor(rec.key)}</strong></div>
+        <div>${s.summary}</div>
+        <ul style="margin:6px 0 0 18px;">
+          ${s.bullets.map(b => `<li>${b}</li>`).join('')}
+        </ul>
+      </div>`;
+  }).join('');
+
+  const title = scope === 'distributor' ? 'By Distributor' : 'By Rep';
+  host.innerHTML = `<div><strong>Interpretation (${title})</strong></div>${blocks}`;
+}
+
+
 function createWeeklyVelocity() {
         const lines = dashboardData.detailed;
         const paid = buildPaidInvoices(lines);
@@ -1546,41 +1675,57 @@ function createWeeklyVelocity() {
 
             // Build unified week labels (x-axis)
             const allWeeks = _.uniq(_.flatten(Object.values(dataByKey).map(arr => arr.map(r => r.week)))).sort();
+
             function dataset(metric) {
-            return Object.entries(dataByKey).map(([k, arr]) => ({
-                label: k,
+                return Object.entries(dataByKey).map(([k, arr]) => ({
+                label: (scope === 'rep' ? (salesRepMap[String(k)] || 'Unassigned') : k),
                 data: allWeeks.map(w => (arr.find(x => x.week === w)?.[metric]) ?? 0),
                 fill: false,
                 tension: 0.2
-            }));
+                }));
             }
 
-            // Destroy old
+            // (re)draw charts...
             if (charts.doorsPerWeek) charts.doorsPerWeek.destroy();
             if (charts.opaPerWeek) charts.opaPerWeek.destroy();
             if (charts.rpdPerWeek) charts.rpdPerWeek.destroy();
 
             charts.doorsPerWeek = new Chart(ctxDoors, {
-            type: 'line',
-            data: { labels: allWeeks, datasets: dataset('doors') },
-            options: { plugins:{legend:{display: Object.keys(dataByKey).length<=6}}, scales:{x:{ticks:{autoSkip:true,maxTicksLimit:12}}}}
+                type: 'line',
+                data: { labels: allWeeks, datasets: dataset('doors') },
+                options: {
+                    plugins:{ legend:{ display: (scope === 'rep') ? true : (Object.keys(dataByKey).length<=6) } },
+                    scales:{ x:{ ticks:{ autoSkip:true, maxTicksLimit:12 } } }
+                }
             });
             charts.opaPerWeek = new Chart(ctxOPA, {
-            type: 'line',
-            data: { labels: allWeeks, datasets: dataset('opa') },
-            options: { plugins:{legend:{display: Object.keys(dataByKey).length<=6}}, scales:{x:{ticks:{autoSkip:true,maxTicksLimit:12}}}}
+                type: 'line',
+                data: { labels: allWeeks, datasets: dataset('opa') },
+                options: {
+                    plugins:{ legend:{ display: (scope === 'rep') ? true : (Object.keys(dataByKey).length<=6) } },
+                    scales:{ x:{ ticks:{ autoSkip:true, maxTicksLimit:12 } } }
+                }
             });
             charts.rpdPerWeek = new Chart(ctxRPD, {
-            type: 'line',
-            data: { labels: allWeeks, datasets: dataset('rpd') },
-            options: { plugins:{legend:{display: Object.keys(dataByKey).length<=6}}, scales:{x:{ticks:{autoSkip:true,maxTicksLimit:12}}}}
+                type: 'line',
+                data: { labels: allWeeks, datasets: dataset('rpd') },
+                options: {
+                    plugins:{ legend:{ display: (scope === 'rep') ? true : (Object.keys(dataByKey).length<=6) } },
+                    scales:{ x:{ ticks:{ autoSkip:true, maxTicksLimit:12 } } }
+                }
             });
 
-            // Acceptance check: Σ weekly paid_invoices == YTD paid invoices
+            // Acceptance check
             const weeklySum = _.sumBy(Object.values(dataByKey).flat(), r => r.paidInvoices);
             const ytdPaid = paid.length;
             console.log('[Weekly Velocity] acceptance check — weekly sum:', weeklySum, 'YTD paid:', ytdPaid);
-        }
+
+
+            // 🔮 NEW: render the narrative text
+            const scopeKey = scope; // 'overall' | 'distributor' | 'rep'
+            renderWeeklyNarrative(scopeKey, allWeeks, dataByKey);
+            }
+
 
         scopeEl.onchange = render;
         render();
