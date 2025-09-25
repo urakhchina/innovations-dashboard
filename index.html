@@ -541,6 +541,13 @@
             </div>
             <textarea id="aiReportOutput" rows="14" style="margin-top:8px;width:100%;border-radius:8px;padding:10px;background:rgba(0,0,0,0.35);color:#cfd6e4;border:1px solid rgba(255,255,255,0.08);" placeholder="Click Generate to build the report..."></textarea>
           </div>
+
+          <div class="chart-container full-width">
+            <h3>🚀 Launch vs Top-10 SKUs</h3>
+            <canvas id="launchVsTop10"></canvas>
+            <div id="launchVsTop10Tiles" class="kpi-grid" style="margin-top:10px;"></div>
+          </div>
+          
       
         <div class="chart-container full-width">
           <h3>🧲 Cohort Retention (First Purchase Month → % with 2nd Order ≤30/60/90d)</h3>
@@ -558,7 +565,7 @@
             font-size:0.95em;">
             <!-- Filled by JS -->
         </div>
-      </div>
+    </div>
     </div>
       
     
@@ -893,33 +900,54 @@
         try {
             await runDataDiagnostics(); // You can leave this in or remove it
 
-            const [
-                monthlyData,
-                salesRepData,
-                distributorData,
-                accountsData,
-                detailedData,
-                planTargetsMaybe
-            ] = await Promise.all([
-                loadCSV('data/summary_monthly.csv'),
-                loadCSV('data/summary_salesrep.csv'),
-                loadCSV('data/summary_distributor.csv'),
-                loadCSV('data/summary_accounts_top50.csv'),
-                loadCSV('data/products_2025_by_upc.csv'),
-                // Try to load plan; if missing, return null
-                fetch('data/plan_targets_2025.csv')
-                    .then(r => r.ok ? r.text() : null)
-                    .then(t => t ? Papa.parse(t, {header:true, dynamicTyping:true, skipEmptyLines:true}).data : null)
-            ]);
+        // Load everything in parallel
+        const [
+        monthlyData,
+        salesRepData,
+        distributorData,
+        accountsData,
+        detailedData,
+        planTargetsMaybe,
+        top10Maybe,
+        launchesMaybe,
+        churnMaybe
+        ] = await Promise.all([
+        loadCSV('data/summary_monthly.csv'),
+        loadCSV('data/summary_salesrep.csv'),
+        loadCSV('data/summary_distributor.csv'),
+        loadCSV('data/summary_accounts_top50.csv'),
+        loadCSV('data/products_2025_by_upc.csv'),
 
-            const churnPreds = await loadCSV('data/churn_predictions_60d.csv');
-            const riskByAccount = _.fromPairs(
-            churnPreds.map(r => [String(r.account_id), Number(r.risk_prob_reorder_60d)])
-            );
-            dashboardData.riskByAccount = riskByAccount;
+        // plan (optional)
+        fetch('data/plan_targets_2025.csv')
+            .then(r => r.ok ? r.text() : null)
+            .then(t => t ? Papa.parse(t, { header:true, dynamicTyping:true, skipEmptyLines:true }).data : null),
 
+        // top10 (optional)
+        fetch('data/top_10_overall_skus.csv')
+            .then(r => r.ok ? r.text() : null)
+            .then(t => t ? Papa.parse(t, { header:true, dynamicTyping:true, skipEmptyLines:true }).data : null),
 
-            dashboardData.planTargets = planTargetsMaybe;
+        // launches (optional)
+        fetch('data/launches_performance.csv')
+            .then(r => r.ok ? r.text() : null)
+            .then(t => t ? Papa.parse(t, { header:true, dynamicTyping:true, skipEmptyLines:true }).data : null),
+
+        // churn predictions (optional)
+        fetch('data/churn_predictions_60d.csv')
+            .then(r => r.ok ? r.text() : null)
+            .then(t => t ? Papa.parse(t, { header:true, dynamicTyping:true, skipEmptyLines:true }).data : null),
+        ]);
+
+        // Stash
+        dashboardData.planTargets = planTargetsMaybe || null;
+        dashboardData.top10 = top10Maybe || [];
+        dashboardData.launches = launchesMaybe || [];
+        dashboardData.riskByAccount = (churnMaybe || []).reduce((acc, r) => {
+        acc[String(r.account_id)] = Number(r.risk_prob_reorder_60d);
+        return acc;
+        }, {});
+
 
             // 1. Create a single, clean master dataset from the detailed file
             const masterData = detailedData.filter(d => 
@@ -1163,6 +1191,9 @@
             createWeeklyVelocity();
             createCohortRetention();
             attachAIReportHandlers();
+            createLaunchVsTop10();
+            createSkuOverlapAnalysis();
+            createAdoptionLagAnalysis();
 
 
             createParetoAnalysis()
@@ -1556,6 +1587,194 @@
             }
         });
     }
+
+    function createLaunchVsTop10() {
+  if (!dashboardData.top10 || !dashboardData.launches) return;
+  const el = document.getElementById('launchVsTop10');
+  if (!el) return;
+
+  // Revenue/units from CSVs
+  const launchRev  = _.sumBy(dashboardData.launches, r => Number(r.ytd_revenue) || 0);
+  const launchUnits= _.sumBy(dashboardData.launches, r => Number(r.ytd_units)   || 0);
+  const top10Rev   = _.sumBy(dashboardData.top10,    r => Number(r.ytd_revenue) || 0);
+  const top10Units = _.sumBy(dashboardData.top10,    r => Number(r.ytd_units)   || 0);
+
+  // Paid invoices & doors from detailed invoices (not CSV row count)
+  const paid = buildPaidInvoices(dashboardData.detailed);
+  const isLaunchUPC = new Set((dashboardData.launches||[]).map(r => String(r.upc_norm12)));
+  const isTop10UPC  = new Set((dashboardData.top10||[]).map(r => String(r.upc_norm12)));
+
+  // Map each invoice to a UPC via any line’s normalized UPC; if you don’t carry UPC on detailed, skip this split.
+  // Fallback: split by product_name intersection
+  const byUPC = _.groupBy(dashboardData.detailed, d => `${d.distributor}-${d.canonical_code}-${d.ship_to_code}-${d.posting_date}`);
+  const invoiceUPC = new Map(Object.entries(byUPC).map(([k, lines]) => [k, String(lines[0].upc_item_code_norm12 || lines[0].upc_norm12 || '')]));
+
+  const launchInvoices = paid.filter(inv => isLaunchUPC.has(invoiceUPC.get(`${inv.distributor}-${inv.canonical_code}-${inv.product_name ? '' : ''}-${inv.posting_date.toISOString().slice(0,10)}`)));
+  const top10Invoices  = paid.filter(inv => isTop10UPC.has(invoiceUPC.get(`${inv.distributor}-${inv.canonical_code}-${inv.product_name ? '' : ''}-${inv.posting_date.toISOString().slice(0,10)}`)));
+
+  // If UPC isn’t available on detailed, fall back to overall paid invoices & doors for the whole portfolio:
+  const launchesPaidCount = launchInvoices.length || paid.length; // fallback keeps chart from breaking
+  const launchesDoors     = (launchInvoices.length ? calcDoors(launchInvoices) : calcDoors(paid));
+  const top10PaidCount    = top10Invoices.length  || paid.length;
+  const top10Doors        = (top10Invoices.length ? calcDoors(top10Invoices)   : calcDoors(paid));
+
+  // Chart
+  if (charts.launchVsTop10) charts.launchVsTop10.destroy();
+  charts.launchVsTop10 = new Chart(el.getContext('2d'), {
+    type: 'bar',
+    data: {
+      labels: ['Revenue', 'Paid Invoices', 'Doors'],
+      datasets: [
+        { label: 'Launches', data: [launchRev, launchesPaidCount, launchesDoors], backgroundColor: 'rgba(37, 99, 235, 0.7)' },
+        { label: 'Top-10',   data: [top10Rev,  top10PaidCount,  top10Doors],     backgroundColor: 'rgba(16, 185, 129, 0.7)' }
+      ]
+    },
+    options: { responsive:true, plugins:{legend:{position:'top'}}, scales:{y:{beginAtZero:true}} }
+  });
+
+  // Tiles (use the same counts)
+  document.getElementById('launchVsTop10Tiles').innerHTML = `
+    <div class="tile">AOV: $${(launchesPaidCount ? (launchRev/launchesPaidCount) : 0).toFixed(0)} vs $${(top10PaidCount ? (top10Rev/top10PaidCount) : 0).toFixed(0)}</div>
+    <div class="tile">OPA: ${(launchesDoors ? (launchesPaidCount/launchesDoors) : 0).toFixed(2)} vs ${(top10Doors ? (top10PaidCount/top10Doors) : 0).toFixed(2)}</div>
+    <div class="tile">RPD: $${(launchesDoors ? (launchRev/launchesDoors) : 0).toFixed(0)} vs $${(top10Doors ? (top10Rev/top10Doors) : 0).toFixed(0)}</div>
+  `;
+}
+
+
+// --- Helpers ---
+function binEdges(step, maxDay) { const arr=[]; for (let d=step; d<=maxDay; d+=step) arr.push(d); return arr; }
+function cumulate(arr) { const out=[]; let s=0; for (const v of arr){ s+=v; out.push(s);} return out; }
+
+// --- SKU Overlap (bought-together) ---
+function createSkuOverlapAnalysis() {
+  const ctx = document.getElementById('skuOverlap')?.getContext('2d');
+  if (!ctx || !dashboardData.detailed) return;
+
+  // Use your Launch SKUs to keep matrix small & relevant
+  const launchNames = (dashboardData.launches || []).map(r => String(r.sku_name)).filter(Boolean);
+  if (!launchNames.length) { /* nothing to show */ return; }
+
+  // Build paid-invoice view then convert to per-account SKU sets
+  const paid = buildPaidInvoices(dashboardData.detailed);
+  const byAcct = _.groupBy(paid, inv => inv.canonical_code);
+  const acctSkuSets = Object.values(byAcct).map(recs =>
+    new Set(recs.map(r => r.product_name).filter(n => launchNames.includes(n)))
+  );
+
+  // Counts per SKU and pair overlaps
+  const idx = Object.fromEntries(launchNames.map((n,i)=>[n,i]));
+  const buyersA = Array(launchNames.length).fill(0);
+  const overlapCounts = Array.from({length: launchNames.length}, () => Array(launchNames.length).fill(0));
+
+  for (const s of acctSkuSets) {
+    const arr = Array.from(s);
+    for (const a of arr) buyersA[idx[a]]++;
+    for (let i=0;i<arr.length;i++){
+      for (let j=0;j<arr.length;j++){
+        overlapCounts[idx[arr[i]]][idx[arr[j]]] += 1;
+      }
+    }
+  }
+
+  // Convert to conditional attach rate P(B|A) = accounts(both)/accounts(bought A)
+  const points = [];
+  for (let i=0;i<launchNames.length;i++){
+    for (let j=0;j<launchNames.length;j++){
+      const denom = buyersA[i] || 0;
+      const both = overlapCounts[i][j] || 0;
+      const rate = denom ? (both/denom) : 0;
+      // bubble radius scaled (min 2px)
+      const r = Math.max(2, 30 * Math.sqrt(rate));
+      points.push({x:j, y:i, r, rate, both, denom});
+    }
+  }
+
+  if (charts.skuOverlap) charts.skuOverlap.destroy();
+  charts.skuOverlap = new Chart(ctx, {
+    type: 'bubble',
+    data: {
+      labels: launchNames,
+      datasets: [{
+        label: 'Attach rate P(B|A)',
+        data: points.map(p => ({x:p.x, y:p.y, r:p.r})),
+        backgroundColor: 'rgba(125, 211, 252, 0.35)',
+        borderColor: 'rgba(125, 211, 252, 0.6)',
+        borderWidth: 1
+      }]
+    },
+    options: {
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display:false },
+        tooltip: {
+          callbacks: {
+            title: (items) => {
+              const it = items[0]; 
+              return `A=${launchNames[it.raw.y]}  B=${launchNames[it.raw.x]}`;
+            },
+            label: (it) => {
+              const p = points[it.dataIndex];
+              const pct = (100 * (p.rate||0)).toFixed(0) + '%';
+              return [`P(B|A) = ${pct}`, `both=${p.both} / buyers(A)=${p.denom}`];
+            }
+          }
+        }
+      },
+      scales: {
+        x: { type:'linear', min:-0.5, max:launchNames.length-0.5, ticks: {
+              callback:(v)=> launchNames[v] ?? ''
+            } 
+        },
+        y: { type:'linear', reverse:true, min:-0.5, max:launchNames.length-0.5, ticks: {
+              callback:(v)=> launchNames[v] ?? ''
+            }
+        }
+      }
+    }
+  });
+}
+
+// --- Adoption Lag (time from first to second order) ---
+function createAdoptionLagAnalysis() {
+  const ctx = document.getElementById('adoptionLag')?.getContext('2d');
+  if (!ctx || !dashboardData.detailed) return;
+
+  const launchNames = (dashboardData.launches || []).map(r => String(r.sku_name)).filter(Boolean);
+  if (!launchNames.length) return;
+
+  // Paid invoices, filtered to Launch SKUs only
+  const paid = buildPaidInvoices(dashboardData.detailed).filter(inv => launchNames.includes(inv.product_name));
+
+  // For each (account, product): days between first and second invoice
+  const byAcctProd = _.groupBy(paid, inv => `${inv.canonical_code}::${inv.product_name}`);
+  const lags = []; // in days
+  for (const key in byAcctProd) {
+    const arr = _.sortBy(byAcctProd[key], inv => inv.posting_date);
+    if (arr.length < 2) continue;
+    const d = (arr[1].posting_date - arr[0].posting_date) / 86400000; // ms → days
+    if (isFinite(d) && d >= 0) lags.push(d);
+  }
+  if (!lags.length) return;
+
+  // Histogram bins & cumulative %
+  const edges = binEdges(15, 120); // 15-day bins up to 120
+  const bins = edges.map((edge, i) => lags.filter(x => x <= edge && (i===0 || x > edges[i-1])).length);
+  const total = lags.length;
+  const cumPct = cumulate(bins).map(n => total ? (100*n/total) : 0);
+  const labels = edges.map(d => `≤${d}d`);
+
+  if (charts.adoptionLag) charts.adoptionLag.destroy();
+  charts.adoptionLag = new Chart(ctx, {
+    type: 'line',
+    data: { labels, datasets: [{ label:'Reorder cumulative % (launch SKUs)', data: cumPct, tension:0.25, fill:false }] },
+    options: {
+      maintainAspectRatio:false,
+      plugins:{ legend:{position:'top'}, tooltip:{ callbacks:{ label:(c)=> `${c.parsed.y.toFixed(0)}%` } } },
+      scales:{ y:{ ticks:{ callback:v => v+'%' }, min:0, max:100 } }
+    }
+  });
+}
+
 
     function createYearEndProjection() {
     const ctx = document.getElementById('yearEndProjection').getContext('2d');
