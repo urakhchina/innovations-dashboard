@@ -544,6 +544,13 @@
             <canvas id="launchVsTop10"></canvas>
             <div id="launchVsTop10Tiles" class="kpi-grid" style="margin-top:10px;"></div>
           </div>
+
+          <!-- Free Fill Reorder Analysis Section -->
+          <div class="chart-container full-width">
+            <h3>🎁 Free Fill Reorder Analysis</h3>
+            <canvas id="freeFillReorderChart"></canvas>
+            <div id="freeFillStats" style="font-size:0.85em;color:#a0a0a0;margin-top:6px;"></div>
+          </div>
           
       
         <div class="chart-container full-width">
@@ -1191,8 +1198,8 @@
             createLaunchVsTop10();
             createSkuOverlapAnalysis();
             createAdoptionLagAnalysis();
-
-
+            // Generate the Free Fill Reorder Analysis chart and stats
+            createFreeFillReorderAnalysis();
             createParetoAnalysis()
         }
         
@@ -1770,6 +1777,121 @@ function createAdoptionLagAnalysis() {
       scales:{ y:{ ticks:{ callback:v => v+'%' }, min:0, max:100 } }
     }
   });
+}
+
+// --- Free Fill Reorder Analysis ---
+// This analysis examines "free fill" shipments (revenue = 0 and quantity 1 or 2) and measures
+// how often accounts reorder after receiving the sample. For accounts receiving one or two
+// free fills, it reports the number of doors reached, how many reorder within 90 days and
+// within 365 days, as well as the average reorder time and number of subsequent paid orders.
+function createFreeFillReorderAnalysis() {
+  const canvas = document.getElementById('freeFillReorderChart');
+  if (!canvas || !dashboardData.detailed) return;
+  const ctx = canvas.getContext('2d');
+
+  // Transaction rows from CSV
+  const rows = dashboardData.detailed;
+  // Filter zero-revenue lines with quantity exactly 1 or 2 (free fills)
+  const free = rows.filter(d => {
+    const qty = Number(d.quantity ?? d.units ?? 0);
+    const rev = Number(d.revenue ?? 0);
+    return rev === 0 && (qty === 1 || qty === 2);
+  });
+  // Group free fills by account ID (canonical_code)
+  const byAcct = _.groupBy(free, d => d.canonical_code);
+  const freeAccounts = [];
+  for (const acct in byAcct) {
+    const events = byAcct[acct];
+    // Find earliest free fill per account (by posting_date)
+    const earliest = _.minBy(events, e => parseYMD(e.posting_date));
+    if (!earliest) continue;
+    const date = parseYMD(earliest.posting_date);
+    const qty = Number(earliest.quantity ?? earliest.units ?? 0);
+    const type = (qty === 2 ? 2 : 1);
+    freeAccounts.push({ account: acct, date, type });
+  }
+  // Initialize metrics for 1 and 2 free fill cohorts
+  const results = {
+    1: { total: 0, reorder90: 0, reorder365: 0, reorderRate90: 0, reorderRate365: 0, avgTime: null, avgOrderCount: null },
+    2: { total: 0, reorder90: 0, reorder365: 0, reorderRate90: 0, reorderRate365: 0, avgTime: null, avgOrderCount: null }
+  };
+  // Pre-group all paid transactions by account to speed up lookup
+  const paid = rows.filter(r => Number(r.revenue ?? 0) > 0);
+  const byAcctPaid = _.groupBy(paid, d => d.canonical_code);
+  [1, 2].forEach(type => {
+    const accounts = freeAccounts.filter(f => f.type === type);
+    results[type].total = accounts.length;
+    const times = [];
+    const counts = [];
+    accounts.forEach(f => {
+      const list = byAcctPaid[f.account] || [];
+      // Only consider orders after the free fill date
+      const after = list.filter(x => parseYMD(x.posting_date) > f.date);
+      if (after.length > 0) {
+        const sorted = _.sortBy(after, a => parseYMD(a.posting_date));
+        const diffDays = (parseYMD(sorted[0].posting_date) - f.date) / 86400000;
+        times.push(diffDays);
+        counts.push(after.length);
+        if (diffDays <= 90) results[type].reorder90++;
+        if (diffDays <= 365) results[type].reorder365++;
+      }
+    });
+    if (results[type].total > 0) {
+      results[type].reorderRate90 = 100 * results[type].reorder90 / results[type].total;
+      results[type].reorderRate365 = 100 * results[type].reorder365 / results[type].total;
+    }
+    results[type].avgTime = times.length ? _.mean(times) : null;
+    results[type].avgOrderCount = counts.length ? _.mean(counts) : null;
+  });
+  // Prepare datasets for Chart.js grouped bar chart
+  const labels = ['≤90d', '≤365d'];
+  const datasets = [1, 2].map(type => ({
+    label: `${type} Free Fill`,
+    data: [results[type].reorderRate90, results[type].reorderRate365],
+    backgroundColor: type === 1 ? 'rgba(102,126,234,0.6)' : 'rgba(236,72,153,0.6)'
+  }));
+  // Destroy existing chart instance if present
+  if (charts.freeFillReorder) charts.freeFillReorder.destroy();
+  charts.freeFillReorder = new Chart(ctx, {
+    type: 'bar',
+    data: { labels, datasets },
+    options: {
+      maintainAspectRatio: false,
+      scales: {
+        y: {
+          min: 0,
+          max: Math.max(
+            Math.ceil((results[1].reorderRate365 || 0) / 10) * 10,
+            Math.ceil((results[2].reorderRate365 || 0) / 10) * 10,
+            10
+          ),
+          ticks: { callback: v => v + '%' }
+        }
+      },
+      plugins: {
+        legend: { position: 'top' },
+        tooltip: {
+          callbacks: {
+            label: function(c) {
+              const type = c.dataset.label.startsWith('1') ? 1 : 2;
+              const idx = c.dataIndex;
+              const denom = results[type].total;
+              const num = idx === 0 ? results[type].reorder90 : results[type].reorder365;
+              const perc = idx === 0 ? results[type].reorderRate90 : results[type].reorderRate365;
+              return `${c.dataset.label}: ${perc.toFixed(0)}% (${num}/${denom})`;
+            }
+          }
+        }
+      }
+    }
+  });
+  // Render narrative statistics below the chart
+  const statsDiv = document.getElementById('freeFillStats');
+  const asPct = x => x != null ? x.toFixed(0) + '%' : '—';
+  statsDiv.innerHTML = `
+    <div><strong>1 Free Fill:</strong> ${results[1].total.toLocaleString()} accounts. Reordered ≤90d: ${results[1].reorder90.toLocaleString()} (${asPct(results[1].reorderRate90)}). Reordered ≤365d: ${results[1].reorder365.toLocaleString()} (${asPct(results[1].reorderRate365)}). ${results[1].avgTime != null ? 'Avg reorder time: ' + results[1].avgTime.toFixed(1) + 'd. ' : ''}${results[1].avgOrderCount != null ? 'Avg orders post-free: ' + results[1].avgOrderCount.toFixed(2) + '.' : ''}</div>
+    <div style="margin-top:6px;"><strong>2 Free Fills:</strong> ${results[2].total.toLocaleString()} accounts. Reordered ≤90d: ${results[2].reorder90.toLocaleString()} (${asPct(results[2].reorderRate90)}). Reordered ≤365d: ${results[2].reorder365.toLocaleString()} (${asPct(results[2].reorderRate365)}). ${results[2].avgTime != null ? 'Avg reorder time: ' + results[2].avgTime.toFixed(1) + 'd. ' : ''}${results[2].avgOrderCount != null ? 'Avg orders post-free: ' + results[2].avgOrderCount.toFixed(2) + '.' : ''}</div>
+  `;
 }
 
 
