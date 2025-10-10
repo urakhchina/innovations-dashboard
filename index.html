@@ -551,6 +551,12 @@
             <canvas id="freeFillReorderChart"></canvas>
             <div id="freeFillStats" style="font-size:0.85em;color:#a0a0a0;margin-top:6px;"></div>
           </div>
+
+          <!-- Free Fill Account Details Table -->
+          <div class="table-container full-width">
+            <h3>🧾 Free Fill Account Details</h3>
+            <table id="freeFillAccountTable"></table>
+          </div>
           
       
         <div class="chart-container full-width">
@@ -1892,6 +1898,83 @@ function createFreeFillReorderAnalysis() {
     <div><strong>1 Free Fill:</strong> ${results[1].total.toLocaleString()} accounts. Reordered ≤90d: ${results[1].reorder90.toLocaleString()} (${asPct(results[1].reorderRate90)}). Reordered ≤365d: ${results[1].reorder365.toLocaleString()} (${asPct(results[1].reorderRate365)}). ${results[1].avgTime != null ? 'Avg reorder time: ' + results[1].avgTime.toFixed(1) + 'd. ' : ''}${results[1].avgOrderCount != null ? 'Avg orders post-free: ' + results[1].avgOrderCount.toFixed(2) + '.' : ''}</div>
     <div style="margin-top:6px;"><strong>2 Free Fills:</strong> ${results[2].total.toLocaleString()} accounts. Reordered ≤90d: ${results[2].reorder90.toLocaleString()} (${asPct(results[2].reorderRate90)}). Reordered ≤365d: ${results[2].reorder365.toLocaleString()} (${asPct(results[2].reorderRate365)}). ${results[2].avgTime != null ? 'Avg reorder time: ' + results[2].avgTime.toFixed(1) + 'd. ' : ''}${results[2].avgOrderCount != null ? 'Avg orders post-free: ' + results[2].avgOrderCount.toFixed(2) + '.' : ''}</div>
   `;
+
+  // Build detailed account list for table
+  const details = [];
+  freeAccounts.forEach(f => {
+    const list = byAcctPaid[f.account] || [];
+    // only orders after free fill
+    const after = list.filter(x => parseYMD(x.posting_date) > f.date);
+    const reorderCount = after.length;
+    const reorderRevenue = _.sumBy(after, r => Number(r.revenue ?? 0));
+    let daysToReorder = null;
+    let reorderWithin90 = false;
+    let reorderWithin365 = false;
+    if (after.length > 0) {
+      const first = _.minBy(after, r => parseYMD(r.posting_date));
+      const diff = (parseYMD(first.posting_date) - f.date) / 86400000;
+      daysToReorder = diff;
+      reorderWithin90 = diff <= 90;
+      reorderWithin365 = diff <= 365;
+    }
+    details.push({
+      account: f.account,
+      type: f.type,
+      freeDate: f.date,
+      reorderCount,
+      reorderRevenue,
+      daysToReorder,
+      reorderWithin90,
+      reorderWithin365
+    });
+  });
+  dashboardData.freeFillDetails = details;
+  dashboardData.freeFillResults = results;
+  // Populate the account-level table
+  if (typeof createFreeFillAccountTable === 'function') createFreeFillAccountTable();
+}
+
+// --- Free Fill Account Table ---
+// This helper renders a detailed table for each account that received a free fill, showing
+// whether they reordered and key metrics. It pulls precomputed details from
+// dashboardData.freeFillDetails set by createFreeFillReorderAnalysis().
+function createFreeFillAccountTable() {
+  const tbl = document.getElementById('freeFillAccountTable');
+  if (!tbl || !dashboardData.freeFillDetails) return;
+  const details = dashboardData.freeFillDetails;
+  // Sort accounts by reorder status (those with reorders first) and by free fill date
+  const sorted = _.orderBy(details, [d => (d.reorderCount > 0 ? 0 : 1), 'freeDate'], ['asc', 'asc']);
+  // Build table rows
+  // Build HTML for header and body separately to avoid nested template literals
+  const header = `
+    <thead>
+      <tr>
+        <th>Account</th>
+        <th>Free Fill Type</th>
+        <th>Free Fill Date</th>
+        <th>Reordered?</th>
+        <th>Days to Reorder</th>
+        <th># Paid Orders Post-Free</th>
+        <th>Revenue Post-Free</th>
+      </tr>
+    </thead>
+  `;
+  const bodyRows = sorted.map(d => {
+    const reordered = d.reorderCount > 0;
+    const dateStr = d.freeDate.toLocaleDateString('en-US');
+    const daysStr = d.daysToReorder != null ? d.daysToReorder.toFixed(0) + 'd' : '—';
+    const revenueStr = '$' + d.reorderRevenue.toLocaleString('en-US', { maximumFractionDigits: 0 });
+    return '<tr>' +
+      '<td>' + d.account + '</td>' +
+      '<td>' + d.type + '</td>' +
+      '<td>' + dateStr + '</td>' +
+      '<td>' + (reordered ? 'Yes' : 'No') + '</td>' +
+      '<td>' + daysStr + '</td>' +
+      '<td>' + d.reorderCount.toLocaleString() + '</td>' +
+      '<td>' + revenueStr + '</td>' +
+      '</tr>';
+  }).join('');
+  tbl.innerHTML = header + '<tbody>' + bodyRows + '</tbody>';
 }
 
 
