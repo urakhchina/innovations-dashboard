@@ -557,6 +557,34 @@
             <h3>🧾 Free Fill Account Details</h3>
             <table id="freeFillAccountTable"></table>
           </div>
+
+          <!-- Free Fill Reorder by SKU (YTD) -->
+          <div class="table-container full-width">
+            <h3>🔍 Free Fill Reorder by SKU (YTD)</h3>
+            <table id="freeFillBySkuTable"></table>
+          </div>
+
+          <!-- Free Fill Reorder by Sample Size (YTD) -->
+          <div class="table-container full-width">
+            <h3>💵 Free Fill Reorder by Sample Size (YTD)</h3>
+            <table id="freeFillByTypeTable"></table>
+          </div>
+
+          <!-- Free Fill Reorder by Dollar (YTD) -->
+          <!--
+            This table groups free fill accounts into revenue brackets based on the total dollars
+            generated from paid reorders after receiving a free fill.  It allows sales managers
+            to quickly see how many accounts fall into each revenue tier, the share of those
+            accounts that have reordered, and the aggregate and average reorder metrics for
+            each tier.  The brackets are derived dynamically from the distribution of
+            reorder revenue across all free fill accounts (quartiles) so that they reflect
+            relative performance regardless of scale.  If there are no reorders yet, the
+            table will simply show a single "No Reorder" row.
+          -->
+          <div class="table-container full-width">
+            <h3>💸 Free Fill Reorder by Dollar (YTD)</h3>
+            <table id="freeFillByDollarTable"></table>
+          </div>
           
       
         <div class="chart-container full-width">
@@ -1789,7 +1817,9 @@ function createAdoptionLagAnalysis() {
 // This analysis examines "free fill" shipments (revenue = 0 and quantity 1 or 2) and measures
 // how often accounts reorder after receiving the sample. For accounts receiving one or two
 // free fills, it reports the number of doors reached, how many reorder within 90 days and
-// within 365 days, as well as the average reorder time and number of subsequent paid orders.
+// within the year-to-date (YTD), as well as the average reorder time, number of subsequent
+// paid orders, and total reorder revenue. Additional tables summarize results by account,
+// by product (SKU), and by free fill type (sample size).
 function createFreeFillReorderAnalysis() {
   const canvas = document.getElementById('freeFillReorderChart');
   if (!canvas || !dashboardData.detailed) return;
@@ -1814,12 +1844,12 @@ function createFreeFillReorderAnalysis() {
     const date = parseYMD(earliest.posting_date);
     const qty = Number(earliest.quantity ?? earliest.units ?? 0);
     const type = (qty === 2 ? 2 : 1);
-    freeAccounts.push({ account: acct, date, type });
+    freeAccounts.push({ account: acct, date, type, product: earliest.product_name });
   }
   // Initialize metrics for 1 and 2 free fill cohorts
   const results = {
-    1: { total: 0, reorder90: 0, reorder365: 0, reorderRate90: 0, reorderRate365: 0, avgTime: null, avgOrderCount: null },
-    2: { total: 0, reorder90: 0, reorder365: 0, reorderRate90: 0, reorderRate365: 0, avgTime: null, avgOrderCount: null }
+    1: { total: 0, reorder90: 0, reorderYTD: 0, reorderRate90: 0, reorderRateYTD: 0, avgTime: null, avgOrderCount: null, reorderRevenue: 0 },
+    2: { total: 0, reorder90: 0, reorderYTD: 0, reorderRate90: 0, reorderRateYTD: 0, avgTime: null, avgOrderCount: null, reorderRevenue: 0 }
   };
   // Pre-group all paid transactions by account to speed up lookup
   const paid = rows.filter(r => Number(r.revenue ?? 0) > 0);
@@ -1838,22 +1868,27 @@ function createFreeFillReorderAnalysis() {
         const diffDays = (parseYMD(sorted[0].posting_date) - f.date) / 86400000;
         times.push(diffDays);
         counts.push(after.length);
+        // count reorders within 90 days
         if (diffDays <= 90) results[type].reorder90++;
-        if (diffDays <= 365) results[type].reorder365++;
+        // count any reorder YTD (≥1 paid invoice)
+        results[type].reorderYTD++;
+        // accumulate reorder revenue (sum of revenue after free fill for this account)
+        const rev = _.sumBy(after, r => Number(r.revenue ?? 0));
+        results[type].reorderRevenue += rev;
       }
     });
     if (results[type].total > 0) {
       results[type].reorderRate90 = 100 * results[type].reorder90 / results[type].total;
-      results[type].reorderRate365 = 100 * results[type].reorder365 / results[type].total;
+      results[type].reorderRateYTD = 100 * results[type].reorderYTD / results[type].total;
     }
     results[type].avgTime = times.length ? _.mean(times) : null;
     results[type].avgOrderCount = counts.length ? _.mean(counts) : null;
   });
   // Prepare datasets for Chart.js grouped bar chart
-  const labels = ['≤90d', '≤365d'];
+  const labels = ['≤90d', 'YTD'];
   const datasets = [1, 2].map(type => ({
     label: `${type} Free Fill`,
-    data: [results[type].reorderRate90, results[type].reorderRate365],
+    data: [results[type].reorderRate90, results[type].reorderRateYTD],
     backgroundColor: type === 1 ? 'rgba(102,126,234,0.6)' : 'rgba(236,72,153,0.6)'
   }));
   // Destroy existing chart instance if present
@@ -1867,8 +1902,8 @@ function createFreeFillReorderAnalysis() {
         y: {
           min: 0,
           max: Math.max(
-            Math.ceil((results[1].reorderRate365 || 0) / 10) * 10,
-            Math.ceil((results[2].reorderRate365 || 0) / 10) * 10,
+            Math.ceil((results[1].reorderRateYTD || 0) / 10) * 10,
+            Math.ceil((results[2].reorderRateYTD || 0) / 10) * 10,
             10
           ),
           ticks: { callback: v => v + '%' }
@@ -1882,8 +1917,8 @@ function createFreeFillReorderAnalysis() {
               const type = c.dataset.label.startsWith('1') ? 1 : 2;
               const idx = c.dataIndex;
               const denom = results[type].total;
-              const num = idx === 0 ? results[type].reorder90 : results[type].reorder365;
-              const perc = idx === 0 ? results[type].reorderRate90 : results[type].reorderRate365;
+              const num = idx === 0 ? results[type].reorder90 : results[type].reorderYTD;
+              const perc = idx === 0 ? results[type].reorderRate90 : results[type].reorderRateYTD;
               return `${c.dataset.label}: ${perc.toFixed(0)}% (${num}/${denom})`;
             }
           }
@@ -1895,8 +1930,8 @@ function createFreeFillReorderAnalysis() {
   const statsDiv = document.getElementById('freeFillStats');
   const asPct = x => x != null ? x.toFixed(0) + '%' : '—';
   statsDiv.innerHTML = `
-    <div><strong>1 Free Fill:</strong> ${results[1].total.toLocaleString()} accounts. Reordered ≤90d: ${results[1].reorder90.toLocaleString()} (${asPct(results[1].reorderRate90)}). Reordered ≤365d: ${results[1].reorder365.toLocaleString()} (${asPct(results[1].reorderRate365)}). ${results[1].avgTime != null ? 'Avg reorder time: ' + results[1].avgTime.toFixed(1) + 'd. ' : ''}${results[1].avgOrderCount != null ? 'Avg orders post-free: ' + results[1].avgOrderCount.toFixed(2) + '.' : ''}</div>
-    <div style="margin-top:6px;"><strong>2 Free Fills:</strong> ${results[2].total.toLocaleString()} accounts. Reordered ≤90d: ${results[2].reorder90.toLocaleString()} (${asPct(results[2].reorderRate90)}). Reordered ≤365d: ${results[2].reorder365.toLocaleString()} (${asPct(results[2].reorderRate365)}). ${results[2].avgTime != null ? 'Avg reorder time: ' + results[2].avgTime.toFixed(1) + 'd. ' : ''}${results[2].avgOrderCount != null ? 'Avg orders post-free: ' + results[2].avgOrderCount.toFixed(2) + '.' : ''}</div>
+    <div><strong>1 Free Fill:</strong> ${results[1].total.toLocaleString()} accounts. Reordered ≤90d: ${results[1].reorder90.toLocaleString()} (${asPct(results[1].reorderRate90)}). Reordered YTD: ${results[1].reorderYTD.toLocaleString()} (${asPct(results[1].reorderRateYTD)}). ${results[1].avgTime != null ? 'Avg reorder time: ' + results[1].avgTime.toFixed(1) + 'd. ' : ''}${results[1].avgOrderCount != null ? 'Avg orders post-free: ' + results[1].avgOrderCount.toFixed(2) + '.' : ''}</div>
+    <div style="margin-top:6px;"><strong>2 Free Fills:</strong> ${results[2].total.toLocaleString()} accounts. Reordered ≤90d: ${results[2].reorder90.toLocaleString()} (${asPct(results[2].reorderRate90)}). Reordered YTD: ${results[2].reorderYTD.toLocaleString()} (${asPct(results[2].reorderRateYTD)}). ${results[2].avgTime != null ? 'Avg reorder time: ' + results[2].avgTime.toFixed(1) + 'd. ' : ''}${results[2].avgOrderCount != null ? 'Avg orders post-free: ' + results[2].avgOrderCount.toFixed(2) + '.' : ''}</div>
   `;
 
   // Build detailed account list for table
@@ -1920,18 +1955,22 @@ function createFreeFillReorderAnalysis() {
     details.push({
       account: f.account,
       type: f.type,
+      product: f.product,
       freeDate: f.date,
       reorderCount,
       reorderRevenue,
       daysToReorder,
       reorderWithin90,
-      reorderWithin365
+      reorderWithinYTD: reorderCount > 0
     });
   });
   dashboardData.freeFillDetails = details;
   dashboardData.freeFillResults = results;
-  // Populate the account-level table
+  // Populate the tables
   if (typeof createFreeFillAccountTable === 'function') createFreeFillAccountTable();
+  if (typeof createFreeFillBySkuTable === 'function') createFreeFillBySkuTable();
+  if (typeof createFreeFillByTypeTable === 'function') createFreeFillByTypeTable();
+  if (typeof createFreeFillByDollarTable === 'function') createFreeFillByDollarTable();
 }
 
 // --- Free Fill Account Table ---
@@ -1975,6 +2014,178 @@ function createFreeFillAccountTable() {
       '</tr>';
   }).join('');
   tbl.innerHTML = header + '<tbody>' + bodyRows + '</tbody>';
+}
+
+// --- Free Fill Reorder by SKU Table ---
+// Aggregates free fill outcomes by product (SKU), summarizing how many accounts
+// received a free fill for each SKU, how many reordered within YTD, the reorder rate,
+// total reorder revenue, and average reorder timing/frequency.
+function createFreeFillBySkuTable() {
+  const tbl = document.getElementById('freeFillBySkuTable');
+  if (!tbl || !dashboardData.freeFillDetails) return;
+  const details = dashboardData.freeFillDetails;
+  // Group details by product
+  const grouped = _.groupBy(details, d => d.product || 'Unknown');
+  const rows = [];
+  for (const product in grouped) {
+    const rec = grouped[product];
+    const total = rec.length;
+    const reorderYTDCount = rec.filter(r => r.reorderCount > 0).length;
+    const reorderRate = total > 0 ? 100 * reorderYTDCount / total : 0;
+    const reorderRev = _.sumBy(rec, r => r.reorderRevenue);
+    const avgTime = _.meanBy(rec.filter(r => r.daysToReorder != null), r => r.daysToReorder);
+    const avgOrders = _.meanBy(rec.filter(r => r.reorderCount > 0), r => r.reorderCount);
+    rows.push({ product, total, reorderYTDCount, reorderRate, reorderRev, avgTime, avgOrders });
+  }
+  const sorted = _.orderBy(rows, ['reorderRate', 'reorderRev'], ['desc', 'desc']);
+  // Build table HTML
+  let html = '<thead><tr>' +
+    '<th>Product</th><th>Free Fill Accounts</th><th>Reordered YTD</th><th>Reorder Rate</th>' +
+    '<th>Reorder Revenue</th><th>Avg Days to Reorder</th><th>Avg Orders</th>' +
+    '</tr></thead><tbody>';
+  html += sorted.map(r => {
+    return '<tr>' +
+      '<td>' + r.product + '</td>' +
+      '<td>' + r.total.toLocaleString() + '</td>' +
+      '<td>' + r.reorderYTDCount.toLocaleString() + '</td>' +
+      '<td>' + (r.reorderRate.toFixed(1)) + '%</td>' +
+      '<td>$' + r.reorderRev.toLocaleString('en-US', { maximumFractionDigits: 0 }) + '</td>' +
+      '<td>' + (r.avgTime != null ? r.avgTime.toFixed(1) + 'd' : '—') + '</td>' +
+      '<td>' + (r.avgOrders != null ? r.avgOrders.toFixed(2) : '—') + '</td>' +
+      '</tr>';
+  }).join('');
+  html += '</tbody>';
+  tbl.innerHTML = html;
+}
+
+// --- Free Fill Reorder by Sample Size Table ---
+// Summarizes outcomes by free fill type (1 vs 2), showing how many accounts were reached,
+// how many reordered within 90 days and YTD, reorder rates, total reorder revenue,
+// and average reorder timing/frequency.
+function createFreeFillByTypeTable() {
+  const tbl = document.getElementById('freeFillByTypeTable');
+  if (!tbl || !dashboardData.freeFillResults || !dashboardData.freeFillDetails) return;
+  const details = dashboardData.freeFillDetails;
+  const rows = [1, 2].map(t => {
+    const res = dashboardData.freeFillResults[t];
+    const rec = details.filter(d => d.type === t);
+    const reorderRev = _.sumBy(rec, r => r.reorderRevenue);
+    const avgTime = _.meanBy(rec.filter(r => r.daysToReorder != null), r => r.daysToReorder);
+    const avgOrders = _.meanBy(rec.filter(r => r.reorderCount > 0), r => r.reorderCount);
+    return {
+      type: t,
+      total: res.total,
+      reorder90: res.reorder90,
+      reorderYTD: res.reorderYTD,
+      reorderRate90: res.reorderRate90,
+      reorderRateYTD: res.reorderRateYTD,
+      reorderRev,
+      avgTime,
+      avgOrders
+    };
+  });
+  // Build table HTML
+  let html = '<thead><tr>' +
+    '<th>Free Fill Type</th><th>Accounts</th><th>Reordered ≤90d</th><th>Reorder Rate ≤90d</th>' +
+    '<th>Reordered YTD</th><th>Reorder Rate YTD</th><th>Reorder Revenue</th>' +
+    '<th>Avg Days to Reorder</th><th>Avg Orders</th>' +
+    '</tr></thead><tbody>';
+  html += rows.map(r => {
+    return '<tr>' +
+      '<td>' + r.type + '</td>' +
+      '<td>' + r.total.toLocaleString() + '</td>' +
+      '<td>' + r.reorder90.toLocaleString() + '</td>' +
+      '<td>' + (r.reorderRate90 != null ? r.reorderRate90.toFixed(1) : '—') + '%</td>' +
+      '<td>' + r.reorderYTD.toLocaleString() + '</td>' +
+      '<td>' + (r.reorderRateYTD != null ? r.reorderRateYTD.toFixed(1) : '—') + '%</td>' +
+      '<td>$' + r.reorderRev.toLocaleString('en-US', { maximumFractionDigits: 0 }) + '</td>' +
+      '<td>' + (r.avgTime != null ? r.avgTime.toFixed(1) + 'd' : '—') + '</td>' +
+      '<td>' + (r.avgOrders != null ? r.avgOrders.toFixed(2) : '—') + '</td>' +
+      '</tr>';
+  }).join('');
+  html += '</tbody>';
+  tbl.innerHTML = html;
+}
+
+// --- Free Fill Reorder by Dollar Table ---
+// Groups accounts that received a free fill into revenue tiers based on total
+// reorder dollars generated during the year.  The brackets are determined
+// dynamically using quartiles of the reorder revenue distribution, producing
+// categories such as "No Reorder", "Low", "Medium", "High" and "Top".  Each
+// row summarises how many accounts reside in that tier, how many of those
+// accounts actually reordered, the reorder rate, the cumulative revenue from
+// those reorders, and average timing/frequency metrics.  This helps identify
+// where the biggest monetary opportunities lie among the free fill recipients.
+function createFreeFillByDollarTable() {
+  const tbl = document.getElementById('freeFillByDollarTable');
+  if (!tbl || !dashboardData.freeFillDetails) return;
+  const details = dashboardData.freeFillDetails;
+  // Extract reorder revenues
+  const revs = details.map(d => d.reorderRevenue).filter(r => r != null).sort((a, b) => a - b);
+  // If no revenue values (all zeros) or no data, show only No Reorder row
+  let categories;
+  if (!revs.length || _.max(revs) === 0) {
+    categories = [ { name: 'No Reorder', filter: d => d.reorderRevenue === 0 } ];
+  } else {
+    // Compute quartiles using d3.quantile (returns undefined if list shorter than 2 but safe)
+    const q1 = d3.quantile(revs, 0.25) || 0;
+    const q2 = d3.quantile(revs, 0.50) || q1;
+    const q3 = d3.quantile(revs, 0.75) || q2;
+    // Build revenue bracket labels - ensure integer rounding for readability
+    const fmt = v => '$' + Math.round(v).toLocaleString();
+    categories = [
+      {
+        name: 'No Reorder',
+        filter: d => d.reorderRevenue === 0
+      },
+      {
+        name: `Low (>$0–${fmt(q1)})`,
+        filter: d => d.reorderRevenue > 0 && d.reorderRevenue <= q1
+      },
+      {
+        name: `Medium (${fmt(q1+1)}–${fmt(q2)})`,
+        filter: d => d.reorderRevenue > q1 && d.reorderRevenue <= q2
+      },
+      {
+        name: `High (${fmt(q2+1)}–${fmt(q3)})`,
+        filter: d => d.reorderRevenue > q2 && d.reorderRevenue <= q3
+      },
+      {
+        name: `Top (>${fmt(q3)})`,
+        filter: d => d.reorderRevenue > q3
+      }
+    ];
+  }
+  // Compute metrics for each category
+  const rows = categories.map(cat => {
+    const rec = details.filter(cat.filter);
+    const total = rec.length;
+    const reordered = rec.filter(r => r.reorderCount > 0).length;
+    const reorderRate = total > 0 ? 100 * reordered / total : null;
+    const reorderRev = _.sumBy(rec, r => r.reorderRevenue);
+    const avgTime = _.meanBy(rec.filter(r => r.daysToReorder != null), r => r.daysToReorder);
+    const avgOrders = _.meanBy(rec.filter(r => r.reorderCount > 0), r => r.reorderCount);
+    return { name: cat.name, total, reordered, reorderRate, reorderRev, avgTime, avgOrders };
+  });
+  // Sort by revenue bracket order: we maintain order as defined in categories
+  // Build table HTML
+  let html = '<thead><tr>' +
+    '<th>Revenue Tier</th><th>Accounts</th><th>Reordered YTD</th><th>Reorder Rate</th>' +
+    '<th>Reorder Revenue</th><th>Avg Days to Reorder</th><th>Avg Orders</th>' +
+    '</tr></thead><tbody>';
+  html += rows.map(r => {
+    return '<tr>' +
+      '<td>' + r.name + '</td>' +
+      '<td>' + r.total.toLocaleString() + '</td>' +
+      '<td>' + r.reordered.toLocaleString() + '</td>' +
+      '<td>' + (r.reorderRate != null ? r.reorderRate.toFixed(1) + '%' : '—') + '</td>' +
+      '<td>$' + r.reorderRev.toLocaleString('en-US', { maximumFractionDigits: 0 }) + '</td>' +
+      '<td>' + (r.avgTime != null ? r.avgTime.toFixed(1) + 'd' : '—') + '</td>' +
+      '<td>' + (r.avgOrders != null ? r.avgOrders.toFixed(2) : '—') + '</td>' +
+      '</tr>';
+  }).join('');
+  html += '</tbody>';
+  tbl.innerHTML = html;
 }
 
 
