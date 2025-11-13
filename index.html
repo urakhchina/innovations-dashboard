@@ -942,7 +942,7 @@
         loadCSV('data/innovations_transactions_2025.csv'),
 
         // plan (optional)
-        fetch('data/plan_targets_2025.csv')
+        fetch('data/plan_targets_2025_annual_template.csv')
             .then(r => r.ok ? r.text() : null)
             .then(t => t ? Papa.parse(t, { header:true, dynamicTyping:true, skipEmptyLines:true }).data : null),
 
