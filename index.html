@@ -3290,6 +3290,8 @@ function populateTables() {
                 .first()
                 .value() || ['N/A', 0];
 
+            // Calculate distributor market share using distributor data only (consistent source)
+            const totalDistributorRevenue = _.sumBy(dashboardData.distributor, 'revenue_ytd');
             const topDistributor = _.chain(dashboardData.distributor)
                 .groupBy('distributor')
                 .mapValues(records => _.sumBy(records, 'revenue_ytd'))
@@ -3327,7 +3329,7 @@ function populateTables() {
                 representing ${((topProduct[1] / totalRevenue) * 100).toFixed(1)}% of total launch revenue.
                 </div>
                 <div class="insight-item">
-                <strong>🏢 Distribution Excellence:</strong> ${topDistributor[0]} dominates with ${((topDistributor[1] / totalRevenue) * 100).toFixed(1)}% market share, suggesting strong channel alignment.
+                <strong>🏢 Distribution Excellence:</strong> ${topDistributor[0]} dominates with ${((topDistributor[1] / totalDistributorRevenue) * 100).toFixed(1)}% of distributor revenue, suggesting strong channel alignment.
                 </div>
                 <div class="insight-item">
                 <strong>🔄 Cross-Sell Opportunity:</strong> ${(100 - parseFloat(multiSKURate)).toFixed(1)}% of accounts carry only a single product,
