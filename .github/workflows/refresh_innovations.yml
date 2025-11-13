@@ -1,12 +1,16 @@
-name: Refresh Innovations Data
+name: Refresh Innovations Data (DISABLED - Manual Updates Only)
+
+# DISABLED: Using manual local updates instead of automated pulls
+# To manually refresh data:
+# 1. Run: export PSQL_DSN='postgresql://...'
+# 2. Run: ./scripts/pull_data.sh && ./scripts/run_pipelines.sh
+# 3. Run: git add data/*.csv && git commit -m "Data refresh $(date)" && git push
 
 on:
-  # Manual trigger
-  workflow_dispatch: {}
-
-  # Nightly at 7:15 AM UTC (11:15 PM PST / 12:15 AM PDT)
-  schedule:
-    - cron: "15 7 * * *"
+  # Workflow disabled - uncomment below to re-enable
+  # workflow_dispatch: {}
+  # schedule:
+  #   - cron: "15 7 * * *"
 
 jobs:
   refresh:

@@ -1,13 +1,31 @@
 # 2025 New Product Launch Analytics Dashboard
 
-Automated analytics dashboard tracking Irwin Naturals' 2025 new product launches with real-time data from AWS RDS.
+Analytics dashboard tracking Irwin Naturals' 2025 new product launches with data from AWS RDS.
 
 ## Features
 
-- **Automated Data Refresh**: Nightly updates from AWS RDS via GitHub Actions
+- **Manual Data Refresh**: Secure local updates from office network
 - **ML-Powered Insights**: Churn prediction and sales forecasting
 - **Interactive Dashboard**: Real-time performance tracking for new launches
-- **Zero Manual Work**: Set it once, forget it
+- **Auto-Deploy**: Push to GitHub → Vercel automatically updates
+
+## Quick Update (from office network)
+
+```bash
+cd /Users/natasha/Documents/Projects/IN_Reports/Innovations
+
+# Set database connection (first time only)
+export PSQL_DSN='postgresql://marioanoadmin:cycleclocktheory600$@awseb-e-hhgfq9zcb9-stack-awsebrdsdatabase-vrbrjr69ej4v.cxqmysocizjq.us-west-2.rds.amazonaws.com:5432/ebdb?sslmode=require'
+
+# Run the update script
+./update_data.sh
+```
+
+The script will:
+1. Pull fresh data from AWS RDS
+2. Run analytics pipelines
+3. Show you what changed
+4. Offer to commit and push (which triggers Vercel auto-deploy)
 
 ## Architecture
 
