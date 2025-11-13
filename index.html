@@ -3298,13 +3298,28 @@ function populateTables() {
                 .first()
                 .value() || ['N/A', 0];
 
-            const multiSKUAccounts = _.chain(dashboardData.accounts)
+            // Calculate cross-sell opportunity based on multi-product vs single-product account performance
+            const accountsByCode = _.chain(dashboardData.accounts)
                 .groupBy('canonical_code')
-                .filter(records => _.uniq(records.map(r => r.product_name)).length > 1)
-                .value().length;
+                .map((records, code) => ({
+                    account: code,
+                    revenue: _.sumBy(records, 'revenue_ytd'),
+                    productCount: _.uniq(records.map(r => r.product_name)).length
+                }))
+                .value();
 
-            const totalAccounts = _.uniqBy(dashboardData.accounts, 'canonical_code').length;
-            const multiSKURate = totalAccounts ? ((multiSKUAccounts / totalAccounts) * 100).toFixed(1) : '0.0';
+            const multiSKUAccounts = accountsByCode.filter(a => a.productCount > 1);
+            const singleSKUAccounts = accountsByCode.filter(a => a.productCount === 1);
+
+            const totalAccounts = accountsByCode.length;
+            const multiSKURate = totalAccounts ? ((multiSKUAccounts.length / totalAccounts) * 100).toFixed(1) : '0.0';
+
+            // Calculate uplift potential: if single-product accounts spent like multi-product accounts
+            const avgMultiSKURevenue = multiSKUAccounts.length > 0
+                ? _.sumBy(multiSKUAccounts, 'revenue') / multiSKUAccounts.length
+                : 0;
+            const currentSingleSKURevenue = _.sumBy(singleSKUAccounts, 'revenue');
+            const potentialUplift = (avgMultiSKURevenue * singleSKUAccounts.length) - currentSingleSKURevenue;
 
             insights.innerHTML = `
                 <div class="insight-item">
@@ -3316,7 +3331,7 @@ function populateTables() {
                 </div>
                 <div class="insight-item">
                 <strong>🔄 Cross-Sell Opportunity:</strong> ${(100 - parseFloat(multiSKURate)).toFixed(1)}% of accounts carry only a single product,
-                representing expansion potential worth $${(totalRevenue * 0.35).toLocaleString('en-US', {maximumFractionDigits: 0})}.
+                representing expansion potential worth $${potentialUplift.toLocaleString('en-US', {maximumFractionDigits: 0})}.
                 </div>
                 <div class="insight-item">
                 <strong>💰 Value Optimization:</strong> Average order value (invoice) is $${invoiceAOV.toFixed(2)}.
