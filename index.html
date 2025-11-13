@@ -2177,38 +2177,56 @@ function createFreeFillByTypeTable() {
 
     function createYearEndProjection() {
     const ctx = document.getElementById('yearEndProjection').getContext('2d');
-    
-    // Step 1: Aggregate the detailed data by month first.
+
+    // Create UPC to canonical name mapping
+    const upcToCanonicalName = Object.fromEntries(
+        Object.entries(productNameToUPC).map(([name, upc]) => [upc, name])
+    );
+
+    // Step 1: Aggregate the detailed data by month first, GROUP BY UPC (not product_name)
     const monthlyAggregated = _.chain(dashboardData.detailed)
-        .groupBy(d => `${d.product_name}-${d.posting_date.substring(0, 7)}`)
-        .map(records => ({
-            product_name: records[0].product_name,
-            month: records[0].posting_date.substring(0, 7),
-            revenue: _.sumBy(records, 'revenue'),
-            units: _.sumBy(records, 'quantity')
-        }))
+        .groupBy(d => {
+            const pd = d.posting_date;
+            const month = typeof pd === 'string' ? pd.substring(0,7) : `${pd.getFullYear()}-${String(pd.getMonth()+1).padStart(2,'0')}`;
+            return `${String(d.upc_item_code_norm12)}-${month}`;
+        })
+        .map(records => {
+            const upc = String(records[0].upc_item_code_norm12);
+            const canonicalName = upcToCanonicalName[upc] || records[0].product_name;
+            const pd = records[0].posting_date;
+            const month = typeof pd === 'string' ? pd.substring(0,7) : `${pd.getFullYear()}-${String(pd.getMonth()+1).padStart(2,'0')}`;
+            return {
+                product_name: canonicalName,
+                upc: upc,
+                month: month,
+                revenue: _.sumBy(records, 'revenue'),
+                units: _.sumBy(records, 'quantity')
+            };
+        })
         .value();
 
     const latestMonth = _.chain(monthlyAggregated)
         .map(d => parseAsLocalDate(`${d.month}-01`))
         .maxBy(d => d.getTime())
         .value();
-        
+
     const latestMonthIndex = latestMonth ? latestMonth.getMonth() : 8;
 
-    // Step 2: Use the monthly aggregated data to create projections.
+    // Step 2: Use the monthly aggregated data to create projections (already normalized by UPC)
     const productProjections = _.chain(monthlyAggregated)
-        .groupBy('product_name')
-        .map((monthlyRecords, name) => {
+        .groupBy('upc')
+        .map((monthlyRecords, upc) => {
+            // Use the canonical product name from the normalized records
+            const name = monthlyRecords[0].product_name;
             const sortedMonths = _.orderBy(monthlyRecords, 'month', 'asc');
             const ytdActual = _.sumBy(sortedMonths, 'revenue');
             const ytdUnits = _.sumBy(sortedMonths, 'units');
             const monthsActive = sortedMonths.length;
-            
+
             let launchQuarter = 'Q1';
             let launchMonth = 0;
             for (const [quarter, products] of Object.entries(newProducts)) {
-                if (products.some(p => p.name === name)) {
+                if (products.some(p => p.name === name || p.upc === upc)) {
                     launchQuarter = quarter;
                     if (quarter === 'Q1') launchMonth = 0; else if (quarter === 'Q2') launchMonth = 3; else if (quarter === 'Q3') launchMonth = 6; else if (quarter === 'Q4') launchMonth = 9;
                     break;
