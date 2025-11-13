@@ -539,12 +539,6 @@
             <textarea id="aiReportOutput" rows="14" style="margin-top:8px;width:100%;border-radius:8px;padding:10px;background:rgba(0,0,0,0.35);color:#cfd6e4;border:1px solid rgba(255,255,255,0.08);" placeholder="Click Generate to build the report..."></textarea>
           </div>
 
-          <div class="chart-container full-width">
-            <h3>🚀 Launch vs Top-10 SKUs</h3>
-            <canvas id="launchVsTop10"></canvas>
-            <div id="launchVsTop10Tiles" class="kpi-grid" style="margin-top:10px;"></div>
-          </div>
-
           <!-- Free Fill Reorder Analysis Section -->
           <div class="chart-container full-width">
             <h3>🎁 Free Fill Reorder Analysis</h3>
@@ -1269,7 +1263,6 @@
             createWeeklyVelocity();
             createCohortRetention();
             attachAIReportHandlers();
-            createLaunchVsTop10();
             createSkuOverlapAnalysis();
             createAdoptionLagAnalysis();
             // Generate the Free Fill Reorder Analysis chart and stats
@@ -1741,59 +1734,6 @@
             }
         });
     }
-
-    function createLaunchVsTop10() {
-  if (!dashboardData.top10 || !dashboardData.launches) return;
-  const el = document.getElementById('launchVsTop10');
-  if (!el) return;
-
-  // Revenue/units from CSVs
-  const launchRev  = _.sumBy(dashboardData.launches, r => Number(r.ytd_revenue) || 0);
-  const launchUnits= _.sumBy(dashboardData.launches, r => Number(r.ytd_units)   || 0);
-  const top10Rev   = _.sumBy(dashboardData.top10,    r => Number(r.ytd_revenue) || 0);
-  const top10Units = _.sumBy(dashboardData.top10,    r => Number(r.ytd_units)   || 0);
-
-  // Paid invoices & doors from detailed invoices (not CSV row count)
-  const paid = buildPaidInvoices(dashboardData.detailed);
-  const isLaunchUPC = new Set((dashboardData.launches||[]).map(r => String(r.upc_norm12)));
-  const isTop10UPC  = new Set((dashboardData.top10||[]).map(r => String(r.upc_norm12)));
-
-  // Map each invoice to a UPC via any line’s normalized UPC; if you don’t carry UPC on detailed, skip this split.
-  // Fallback: split by product_name intersection
-  const byUPC = _.groupBy(dashboardData.detailed, d => `${d.distributor}-${d.canonical_code}-${d.ship_to_code}-${d.posting_date}`);
-  const invoiceUPC = new Map(Object.entries(byUPC).map(([k, lines]) => [k, String(lines[0].upc_item_code_norm12 || lines[0].upc_norm12 || '')]));
-
-  const launchInvoices = paid.filter(inv => isLaunchUPC.has(invoiceUPC.get(`${inv.distributor}-${inv.canonical_code}-${inv.product_name ? '' : ''}-${inv.posting_date.toISOString().slice(0,10)}`)));
-  const top10Invoices  = paid.filter(inv => isTop10UPC.has(invoiceUPC.get(`${inv.distributor}-${inv.canonical_code}-${inv.product_name ? '' : ''}-${inv.posting_date.toISOString().slice(0,10)}`)));
-
-  // If UPC isn’t available on detailed, fall back to overall paid invoices & doors for the whole portfolio:
-  const launchesPaidCount = launchInvoices.length || paid.length; // fallback keeps chart from breaking
-  const launchesDoors     = (launchInvoices.length ? calcDoors(launchInvoices) : calcDoors(paid));
-  const top10PaidCount    = top10Invoices.length  || paid.length;
-  const top10Doors        = (top10Invoices.length ? calcDoors(top10Invoices)   : calcDoors(paid));
-
-  // Chart
-  if (charts.launchVsTop10) charts.launchVsTop10.destroy();
-  charts.launchVsTop10 = new Chart(el.getContext('2d'), {
-    type: 'bar',
-    data: {
-      labels: ['Revenue', 'Paid Invoices', 'Doors'],
-      datasets: [
-        { label: 'Launches', data: [launchRev, launchesPaidCount, launchesDoors], backgroundColor: 'rgba(37, 99, 235, 0.7)' },
-        { label: 'Top-10',   data: [top10Rev,  top10PaidCount,  top10Doors],     backgroundColor: 'rgba(16, 185, 129, 0.7)' }
-      ]
-    },
-    options: { responsive:true, plugins:{legend:{position:'top'}}, scales:{y:{beginAtZero:true}} }
-  });
-
-  // Tiles (use the same counts)
-  document.getElementById('launchVsTop10Tiles').innerHTML = `
-    <div class="tile">AOV: $${(launchesPaidCount ? (launchRev/launchesPaidCount) : 0).toFixed(0)} vs $${(top10PaidCount ? (top10Rev/top10PaidCount) : 0).toFixed(0)}</div>
-    <div class="tile">OPA: ${(launchesDoors ? (launchesPaidCount/launchesDoors) : 0).toFixed(2)} vs ${(top10Doors ? (top10PaidCount/top10Doors) : 0).toFixed(2)}</div>
-    <div class="tile">RPD: $${(launchesDoors ? (launchRev/launchesDoors) : 0).toFixed(0)} vs $${(top10Doors ? (top10Rev/top10Doors) : 0).toFixed(0)}</div>
-  `;
-}
-
 
 // --- Helpers ---
 function binEdges(step, maxDay) { const arr=[]; for (let d=step; d<=maxDay; d+=step) arr.push(d); return arr; }
