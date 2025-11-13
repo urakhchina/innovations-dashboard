@@ -2454,20 +2454,16 @@ function createFreeFillByTypeTable() {
   const rows = byProduct.map(r => `
     <tr>
       <td style="padding:6px 10px;border-bottom:1px solid #333;">${r.name}</td>
-      <td style="padding:6px 10px;border-bottom:1px solid #333;">${r.fyPlan!=null ? r.fyPlan.toLocaleString() : '—'}</td>
-      <td style="padding:6px 10px;border-bottom:1px solid #333;">${r.yePace.toLocaleString()}</td>
-      <td style="padding:6px 10px;border-bottom:1px solid #333;">${r.pace!=null ? (r.pace*100).toFixed(0)+'%' : '—'}</td>
+      <td style="padding:6px 10px;border-bottom:1px solid #333;text-align:right;">$${r.yePace.toLocaleString()}</td>
     </tr>`).join('');
 
   host.innerHTML = `
-    <div style="margin-top:6px;">Pace to Plan = YEP / Full-year plan</div>
+    <div style="margin-top:6px;">Year-End Projection by Product</div>
     <table style="margin-top:6px;border-collapse:collapse;">
       <thead>
         <tr>
           <th style="text-align:left;padding:6px 10px;border-bottom:1px solid #555;">Product</th>
-          <th style="text-align:right;padding:6px 10px;border-bottom:1px solid #555;">FY Plan</th>
           <th style="text-align:right;padding:6px 10px;border-bottom:1px solid #555;">YEP ($)</th>
-          <th style="text-align:right;padding:6px 10px;border-bottom:1px solid #555;">Pace</th>
         </tr>
       </thead>
       <tbody>${rows}</tbody>
