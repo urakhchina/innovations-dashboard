@@ -896,6 +896,19 @@
             ]
         };
         
+        // Innovation product UPCs (normalized 12-digit)
+        const innovationUPCs = [
+            '710363592127', // Collagen Beauty
+            '840081412312', // Ashwagandha Healthy Brain Mood & Stress
+            '840081413081', // Magnesium + Beets & CoQ10
+            '840081413128', // Magnesium + Milk Thistle & Turmeric
+            '840081413166', // Power to Sleep Magnesium PM + Relaxing Flower Complex
+            '840081413043', // Turbo-Energy Libido-Max RED
+            '840081413265', // Milk Thistle Triple-Detox
+            '840081413227'  // Alpha-Choline Brain & Muscle Support Extra-Strength
+        ];
+
+        // Keep product names for display purposes
         const newProductsList = [
             'Collagen Beauty',
             'Ashwagandha Healthy Brain Mood & Stress',
@@ -973,9 +986,13 @@
 
 
             // 1. Create a single, clean master dataset from the detailed file
-            const masterData = detailedData.filter(d => 
-                d.year === 2025 && newProductsList.includes(d.product_name)
+            // Filter by UPC instead of product name (product names have inconsistent formatting)
+            const masterData = detailedData.filter(d =>
+                d.year === 2025 && innovationUPCs.includes(d.upc_item_code_norm12)
             );
+
+            console.log(`%c[DATA FILTER] Loaded ${detailedData.length} total rows, filtered to ${masterData.length} innovation product rows`, 'color: cyan; font-weight: bold');
+            console.log(`%c[DATA FILTER] Total revenue in filtered data: $${_.sumBy(masterData.filter(d => d.revenue > 0), 'revenue').toLocaleString()}`, 'color: cyan; font-weight: bold');
 
             // --- THIS IS THE FIX ---
             // Assign the clean master data to the .detailed object
