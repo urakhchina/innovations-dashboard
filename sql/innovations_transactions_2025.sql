@@ -1,4 +1,5 @@
 -- Transaction-level data for 2025 innovation launches ONLY
+-- Includes all fields required by the dashboard
 COPY (
 WITH innovation_upcs AS (
   -- The 8 new innovation product UPCs for 2025
@@ -15,6 +16,7 @@ WITH innovation_upcs AS (
   ) AS t(upc_norm12)
 )
 SELECT
+  -- Product and date fields
   posting_date::date AS posting_date,
   EXTRACT(year FROM posting_date)::int AS year,
   CASE
@@ -23,8 +25,12 @@ SELECT
     WHEN EXTRACT(month FROM posting_date) BETWEEN 7 AND 9 THEN 'Q3'
     ELSE 'Q4'
   END AS quarter,
+
+  -- Product identification
   description AS product_name,
   item_code AS upc_item_code_raw,
+
+  -- Normalized UPC as 12-digit
   CASE
     WHEN length(regexp_replace(coalesce(item_code,''),'[^0-9]','','g')) < 12
       THEN lpad(regexp_replace(coalesce(item_code,''),'[^0-9]','','g'),12,'0')
@@ -33,11 +39,24 @@ SELECT
       THEN substring(regexp_replace(coalesce(item_code,''),'[^0-9]','','g') from 2)
     ELSE regexp_replace(coalesce(item_code,''),'[^0-9]','','g')
   END AS upc_item_code_norm12,
+
+  distributor_item_code,
+
+  -- Sales channels
   distributor,
   sales_rep,
+
+  -- Account information
   canonical_code,
+  base_card_code,
+  ship_to_code,
+
+  -- Transaction details
   quantity,
-  COALESCE(revenue, amount) AS revenue
+  COALESCE(revenue, amount) AS revenue,
+  amount AS amount_raw,
+  transaction_hash
+
 FROM transactions
 WHERE posting_date >= '2025-01-01'
   AND posting_date < '2026-01-01'
@@ -49,4 +68,5 @@ WHERE posting_date >= '2025-01-01'
       THEN substring(regexp_replace(coalesce(item_code,''),'[^0-9]','','g') from 2)
     ELSE regexp_replace(coalesce(item_code,''),'[^0-9]','','g')
   END IN (SELECT upc_norm12 FROM innovation_upcs)
+ORDER BY posting_date DESC, canonical_code
 ) TO STDOUT WITH CSV HEADER;
