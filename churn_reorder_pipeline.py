@@ -276,6 +276,18 @@ def account_features_asof(inv: pd.DataFrame, asof: pd.Timestamp, cfg: SnapshotCo
              .fillna(0.0))
     feats.reset_index(inplace=True)
     feats.rename(columns={"index":"account_id"}, inplace=True)
+
+    # CRITICAL FEATURE: Days into reorder cycle (0.0 = just ordered, 1.0 = at expected reorder point, >1.0 = overdue)
+    # This helps model distinguish:
+    #   - Accounts with 21-day cycles at day 18 (0.86 = about to reorder soon!)
+    #   - Accounts with 90-day cycles at day 18 (0.20 = just restocked, won't reorder for 2+ months)
+    feats["days_into_cycle"] = feats.apply(
+        lambda row: row["days_since_last"] / row["median_interval_180d"]
+                    if row["median_interval_180d"] > 0
+                    else 0.0,
+        axis=1
+    )
+
     # target index column
     feats["asof_date"] = asof
     return feats

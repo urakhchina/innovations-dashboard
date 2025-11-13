@@ -29,8 +29,11 @@ mkdir -p outputs
 
 echo ">> Running churn/reorder prediction pipeline..."
 if [ -f "churn_reorder_pipeline.py" ]; then
-  # Automatically detect latest date in the data (using Python for efficiency on large files)
-  LATEST_DATE=$(python3 -c "import pandas as pd; df = pd.read_csv('data/products_2025_by_upc.csv', usecols=['posting_date']); print(df['posting_date'].max())" 2>/dev/null)
+  # Use innovations-only dataset for innovation-specific churn model
+  echo "   Training on INNOVATION PRODUCTS ONLY (8 SKUs)"
+
+  # Automatically detect latest date in the data
+  LATEST_DATE=$(python3 -c "import pandas as pd; df = pd.read_csv('data/innovations_transactions_2025.csv', usecols=['posting_date']); print(df['posting_date'].max())" 2>/dev/null)
   if [ -z "$LATEST_DATE" ] || [ "$LATEST_DATE" = "nan" ]; then
     LATEST_DATE="2025-09-30"
     echo "   WARNING: Could not detect latest date, using default: $LATEST_DATE"
@@ -38,17 +41,17 @@ if [ -f "churn_reorder_pipeline.py" ]; then
     echo "   Detected latest data date: $LATEST_DATE"
   fi
 
-  # Calculate date ranges: train on older data, validate on recent, test on latest
-  # Use python to calculate dates (more reliable than bash date arithmetic)
+  # Calculate date ranges: For innovations (launched in 2025), adjust training period
+  # Use shorter training window since products are new (no 2024 data for these SKUs)
   DATES=$(python3 -c "
 from datetime import datetime, timedelta
 latest = datetime.strptime('$LATEST_DATE', '%Y-%m-%d')
 test_end = latest
 test_start = test_end - timedelta(days=60)
 valid_end = test_start - timedelta(days=1)
-valid_start = valid_end - timedelta(days=60)
+valid_start = valid_end - timedelta(days=45)  # Shorter validation (innovations are new)
 train_end = valid_start - timedelta(days=1)
-train_start = train_end - timedelta(days=270)  # ~9 months training data
+train_start = datetime(2025, 1, 1)  # Start from launch date (Jan 1, 2025)
 print(f'{train_start:%Y-%m-%d}|{train_end:%Y-%m-%d}|{valid_start:%Y-%m-%d}|{valid_end:%Y-%m-%d}|{test_start:%Y-%m-%d}|{test_end:%Y-%m-%d}')
 ")
 
@@ -60,7 +63,7 @@ print(f'{train_start:%Y-%m-%d}|{train_end:%Y-%m-%d}|{valid_start:%Y-%m-%d}|{vali
   echo "     Test:       $TEST_START to $TEST_END"
 
   python3 churn_reorder_pipeline.py \
-    --input data/products_2025_by_upc.csv \
+    --input data/innovations_transactions_2025.csv \
     --outdir outputs \
     --horizon_days 60 \
     --train_start "$TRAIN_START" \
