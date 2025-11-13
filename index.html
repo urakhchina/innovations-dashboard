@@ -3315,8 +3315,8 @@ function populateTables() {
                 <strong>🏢 Distribution Excellence:</strong> ${topDistributor[0]} dominates with ${((topDistributor[1] / totalRevenue) * 100).toFixed(1)}% market share, suggesting strong channel alignment.
                 </div>
                 <div class="insight-item">
-                <strong>🔄 Cross-Sell Opportunity:</strong> Only ${multiSKURate}% of accounts carry multiple new products,
-                indicating significant upsell potential worth $${(totalRevenue * 0.35).toLocaleString('en-US', {maximumFractionDigits: 0})}.
+                <strong>🔄 Cross-Sell Opportunity:</strong> ${(100 - parseFloat(multiSKURate)).toFixed(1)}% of accounts carry only a single product,
+                representing expansion potential worth $${(totalRevenue * 0.35).toLocaleString('en-US', {maximumFractionDigits: 0})}.
                 </div>
                 <div class="insight-item">
                 <strong>💰 Value Optimization:</strong> Average order value (invoice) is $${invoiceAOV.toFixed(2)}.
