@@ -73,10 +73,16 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Trigger Vercel redeploy
-        if: steps.check_changes.outputs.changed == 'true' && secrets.VERCEL_HOOK_URL != ''
+        if: steps.check_changes.outputs.changed == 'true'
+        env:
+          VERCEL_HOOK_URL: ${{ secrets.VERCEL_HOOK_URL }}
         run: |
-          echo "Triggering Vercel rebuild..."
-          curl -X POST "${{ secrets.VERCEL_HOOK_URL }}"
+          if [ -n "$VERCEL_HOOK_URL" ]; then
+            echo "Triggering Vercel rebuild..."
+            curl -X POST "$VERCEL_HOOK_URL"
+          else
+            echo "VERCEL_HOOK_URL not set, skipping Vercel trigger (Vercel will auto-deploy from git push)"
+          fi
 
       - name: Summary
         run: |
