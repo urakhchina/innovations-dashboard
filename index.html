@@ -3290,9 +3290,12 @@ function populateTables() {
                 .first()
                 .value() || ['N/A', 0];
 
-            // Calculate distributor market share using distributor data only (consistent source)
-            const totalDistributorRevenue = _.sumBy(dashboardData.distributor, 'revenue_ytd');
-            const topDistributor = _.chain(dashboardData.distributor)
+            // Calculate distributor market share for INNOVATION PRODUCTS ONLY
+            const innovationDistributor = dashboardData.distributor.filter(r =>
+                newProductsList.includes(r.product_name)
+            );
+            const totalDistributorRevenue = _.sumBy(innovationDistributor, 'revenue_ytd');
+            const topDistributor = _.chain(innovationDistributor)
                 .groupBy('distributor')
                 .mapValues(records => _.sumBy(records, 'revenue_ytd'))
                 .toPairs()
