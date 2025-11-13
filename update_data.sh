@@ -26,9 +26,15 @@ echo "Step 1: Pulling fresh data from AWS RDS..."
 ./scripts/pull_data.sh
 echo ""
 
-# Step 2: Run analytics pipelines
+# Step 2: Run analytics pipelines (with conda environment)
 echo "Step 2: Running analytics pipelines..."
-./scripts/run_pipelines.sh || echo "WARNING: Pipelines had some errors, but continuing..."
+if command -v conda &> /dev/null; then
+  source ~/anaconda3/etc/profile.d/conda.sh && conda activate eb-app-env
+  ./scripts/run_pipelines.sh || echo "WARNING: Pipelines had some errors, but continuing..."
+  conda deactivate
+else
+  ./scripts/run_pipelines.sh || echo "WARNING: Pipelines had some errors, but continuing..."
+fi
 echo ""
 
 # Step 3: Show what changed

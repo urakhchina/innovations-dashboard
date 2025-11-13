@@ -12,18 +12,20 @@ Analytics dashboard tracking Irwin Naturals' 2025 new product launches with data
 ## Quick Update (from office network)
 
 ```bash
+# Step 1: Start SSH tunnel to RDS (in terminal #1)
+ssh -i ~/.ssh/aws-eb -N -L 5433:awseb-e-hhgfq9zcb9-stack-awsebrdsdatabase-vrbrjr69ej4v.cxqmysocizjq.us-west-2.rds.amazonaws.com:5432 ec2-user@54.200.133.38
+
+# Step 2: Run update script (in terminal #2)
 cd /Users/natasha/Documents/Projects/IN_Reports/Innovations
 
-# Set database connection (first time only)
-export PSQL_DSN='postgresql://marioanoadmin:cycleclocktheory600$@awseb-e-hhgfq9zcb9-stack-awsebrdsdatabase-vrbrjr69ej4v.cxqmysocizjq.us-west-2.rds.amazonaws.com:5432/ebdb?sslmode=require'
+export PSQL_DSN='postgresql://marioanoadmin:cycleclocktheory600$@localhost:5433/ebdb?sslmode=require'
 
-# Run the update script
 ./update_data.sh
 ```
 
 The script will:
-1. Pull fresh data from AWS RDS
-2. Run analytics pipelines
+1. Pull fresh data from AWS RDS via SSH tunnel
+2. Run analytics pipelines (auto-activates conda env `eb-app-env`)
 3. Show you what changed
 4. Offer to commit and push (which triggers Vercel auto-deploy)
 
