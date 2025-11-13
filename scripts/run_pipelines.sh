@@ -29,16 +29,46 @@ mkdir -p outputs
 
 echo ">> Running churn/reorder prediction pipeline..."
 if [ -f "churn_reorder_pipeline.py" ]; then
+  # Automatically detect latest date in the data
+  LATEST_DATE=$(tail -n +2 data/products_2025_by_upc.csv | cut -d',' -f1 | sort -r | head -1)
+  if [ -z "$LATEST_DATE" ]; then
+    LATEST_DATE="2025-09-30"
+    echo "   WARNING: Could not detect latest date, using default: $LATEST_DATE"
+  else
+    echo "   Detected latest data date: $LATEST_DATE"
+  fi
+
+  # Calculate date ranges: train on older data, validate on recent, test on latest
+  # Use python to calculate dates (more reliable than bash date arithmetic)
+  DATES=$(python3 -c "
+from datetime import datetime, timedelta
+latest = datetime.strptime('$LATEST_DATE', '%Y-%m-%d')
+test_end = latest
+test_start = test_end - timedelta(days=60)
+valid_end = test_start - timedelta(days=1)
+valid_start = valid_end - timedelta(days=60)
+train_end = valid_start - timedelta(days=1)
+train_start = train_end - timedelta(days=270)  # ~9 months training data
+print(f'{train_start:%Y-%m-%d}|{train_end:%Y-%m-%d}|{valid_start:%Y-%m-%d}|{valid_end:%Y-%m-%d}|{test_start:%Y-%m-%d}|{test_end:%Y-%m-%d}')
+")
+
+  IFS='|' read -r TRAIN_START TRAIN_END VALID_START VALID_END TEST_START TEST_END <<< "$DATES"
+
+  echo "   Date ranges:"
+  echo "     Train:      $TRAIN_START to $TRAIN_END"
+  echo "     Validation: $VALID_START to $VALID_END"
+  echo "     Test:       $TEST_START to $TEST_END"
+
   python3 churn_reorder_pipeline.py \
     --input data/products_2025_by_upc.csv \
     --outdir outputs \
     --horizon_days 60 \
-    --train_start 2024-10-01 \
-    --train_end 2025-06-30 \
-    --valid_start 2025-07-01 \
-    --valid_end 2025-08-31 \
-    --test_start 2025-09-01 \
-    --test_end 2025-09-30
+    --train_start "$TRAIN_START" \
+    --train_end "$TRAIN_END" \
+    --valid_start "$VALID_START" \
+    --valid_end "$VALID_END" \
+    --test_start "$TEST_START" \
+    --test_end "$TEST_END"
 
   # Copy prediction output to data/ for dashboard
   if [ -f "outputs/churn_predictions_60d.csv" ]; then
