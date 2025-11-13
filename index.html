@@ -911,6 +911,18 @@
             '840081413227'  // Alpha-Choline Brain & Muscle Support Extra-Strength
         ];
 
+        // Map product names to UPCs for filtering
+        const productNameToUPC = {
+            'Collagen Beauty': '710363592127',
+            'Ashwagandha Healthy Brain Mood & Stress': '840081412312',
+            'Magnesium + Beets & CoQ10': '840081413081',
+            'Magnesium + Milk Thistle & Turmeric': '840081413128',
+            'Power to Sleep Magnesium PM + Relaxing Flower Complex': '840081413166',
+            'Turbo-Energy Libido-Max RED': '840081413043',
+            'Milk Thistle Triple-Detox': '840081413265',
+            'Alpha-Choline Brain & Muscle Support Extra-Strength': '840081413227'
+        };
+
         // Keep product names for display purposes
         const newProductsList = [
             'Collagen Beauty',
@@ -2811,7 +2823,13 @@ function createWeeklyVelocity() {
     function updateProductDeepDive(selectedProduct) {
         if (!selectedProduct) return;
 
-        const productData = dashboardData.detailed.filter(d => d.product_name === selectedProduct);
+        // Filter by UPC instead of product name to handle name variations
+        const productUPC = productNameToUPC[selectedProduct];
+        if (!productUPC) {
+            console.warn(`No UPC found for product: ${selectedProduct}`);
+            return;
+        }
+        const productData = dashboardData.detailed.filter(d => String(d.upc_item_code_norm12) === productUPC);
 
         const invoices = _.chain(productData)
             .groupBy(d => `${d.distributor}-${d.canonical_code}-${d.ship_to_code}-${d.posting_date}`)
