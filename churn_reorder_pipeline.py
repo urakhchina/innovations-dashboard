@@ -288,6 +288,15 @@ def account_features_asof(inv: pd.DataFrame, asof: pd.Timestamp, cfg: SnapshotCo
         axis=1
     )
 
+    # CRITICAL FIX: Flag one-time buyers (accounts with only 1 invoice ever)
+    # These should be HIGH RISK by default since they have no reorder history to establish a pattern
+    # Example: 02IN3709_GOODEARTHNATURALFOODSTORE had 1 order on Feb 6 (277 days ago) → should be ~100% at-risk
+    feats["is_one_time_buyer"] = (feats["orders_180d"] == 1).astype(float)
+
+    # For one-time buyers, set days_into_cycle to a very high sentinel value (999)
+    # This signals "no history = high risk" to the model (instead of 0 = "just ordered = low risk")
+    feats.loc[feats["is_one_time_buyer"] == 1, "days_into_cycle"] = 999.0
+
     # target index column
     feats["asof_date"] = asof
     return feats
