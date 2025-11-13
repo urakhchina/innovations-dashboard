@@ -29,9 +29,9 @@ mkdir -p outputs
 
 echo ">> Running churn/reorder prediction pipeline..."
 if [ -f "churn_reorder_pipeline.py" ]; then
-  # Automatically detect latest date in the data
-  LATEST_DATE=$(tail -n +2 data/products_2025_by_upc.csv | cut -d',' -f1 | sort -r | head -1)
-  if [ -z "$LATEST_DATE" ]; then
+  # Automatically detect latest date in the data (using Python for efficiency on large files)
+  LATEST_DATE=$(python3 -c "import pandas as pd; df = pd.read_csv('data/products_2025_by_upc.csv', usecols=['posting_date']); print(df['posting_date'].max())" 2>/dev/null)
+  if [ -z "$LATEST_DATE" ] || [ "$LATEST_DATE" = "nan" ]; then
     LATEST_DATE="2025-09-30"
     echo "   WARNING: Could not detect latest date, using default: $LATEST_DATE"
   else
