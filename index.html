@@ -632,7 +632,10 @@
 
         // --- Extra date helpers (day-accurate) ---
         function parseYMD(dateStr) {
-        // Expects 'YYYY-MM-DD'
+        // Expects 'YYYY-MM-DD' string, but can also handle Date objects
+        if (!dateStr) return null;
+        if (dateStr instanceof Date) return dateStr;
+        if (typeof dateStr !== 'string') return null;
         const [y,m,d] = dateStr.split('-').map(Number);
         return new Date(y, (m||1)-1, d||1);
         }
@@ -1001,7 +1004,13 @@
 
             // 2. Re-create the 'monthly' summary from the master data
             dashboardData.monthly = _.chain(masterData)
-                .groupBy(d => d.posting_date.substring(0, 7))
+                .groupBy(d => {
+                    // Handle both string and Date posting_date
+                    const pd = d.posting_date;
+                    if (typeof pd === 'string') return pd.substring(0,7);
+                    if (pd instanceof Date) return `${pd.getFullYear()}-${String(pd.getMonth()+1).padStart(2,'0')}`;
+                    return 'unknown';
+                })
                 .flatMap((monthRecords, monthKey) => 
                     _.chain(monthRecords)
                         .groupBy('product_name')
@@ -2288,15 +2297,24 @@ function createFreeFillByTypeTable() {
   if (!host) return;
 
   const asOfDate = (function(){
-    const maxDateStr = _.max(dashboardData.detailed.map(d => d.posting_date));
-    return parseYMD(maxDateStr);
+    if (!dashboardData.detailed || dashboardData.detailed.length === 0) return new Date();
+    const dates = dashboardData.detailed.map(d => d.posting_date).filter(d => d);
+    if (dates.length === 0) return new Date();
+    const maxDateStr = _.max(dates);
+    return parseYMD(maxDateStr) || new Date();
   })();
 
   const byProduct = _.chain(dashboardData.detailed)
     .groupBy(d => d.product_name)
     .map((recs, name) => {
       // reuse your existing YEP math (already computed in chart) – quick recompute here:
-      const monthly = _.chain(recs).groupBy(r => r.posting_date.substring(0,7))
+      const monthly = _.chain(recs).groupBy(r => {
+        // Handle both string and Date posting_date
+        const pd = r.posting_date;
+        if (typeof pd === 'string') return pd.substring(0,7);
+        if (pd instanceof Date) return `${pd.getFullYear()}-${String(pd.getMonth()+1).padStart(2,'0')}`;
+        return 'unknown';
+      })
         .map((rows, m) => ({ month:m, revenue: _.sumBy(rows, 'revenue') }))
         .sortBy('month').value();
       const ytdActual = _.sumBy(monthly, 'revenue');
