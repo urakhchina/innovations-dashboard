@@ -656,6 +656,7 @@
                 sales_rep: first.sales_rep,
                 canonical_code: first.canonical_code,
                 product_name: first.product_name,
+                upc_item_code_norm12: first.upc_item_code_norm12, // Add UPC for reliable filtering
                 revenue,
                 units
             };
@@ -1713,18 +1714,22 @@ function createSkuOverlapAnalysis() {
   if (!ctx || !dashboardData.detailed) return;
 
   // Use your Launch SKUs to keep matrix small & relevant
-  const launchNames = (dashboardData.launches || []).map(r => String(r.sku_name)).filter(Boolean);
-  if (!launchNames.length) { /* nothing to show */ return; }
+  const launches = dashboardData.launches || [];
+  if (!launches.length) { /* nothing to show */ return; }
 
-  // Build paid-invoice view then convert to per-account SKU sets
+  const launchUPCs = launches.map(r => String(r.upc_norm12)).filter(Boolean);
+  const launchNames = launches.map(r => String(r.sku_name)).filter(Boolean);
+  const upcToName = Object.fromEntries(launches.map(r => [String(r.upc_norm12), String(r.sku_name)]));
+
+  // Build paid-invoice view then convert to per-account UPC sets (filter by UPC, not name)
   const paid = buildPaidInvoices(dashboardData.detailed);
   const byAcct = _.groupBy(paid, inv => inv.canonical_code);
   const acctSkuSets = Object.values(byAcct).map(recs =>
-    new Set(recs.map(r => r.product_name).filter(n => launchNames.includes(n)))
+    new Set(recs.map(r => String(r.upc_item_code_norm12)).filter(upc => launchUPCs.includes(upc)))
   );
 
-  // Counts per SKU and pair overlaps
-  const idx = Object.fromEntries(launchNames.map((n,i)=>[n,i]));
+  // Counts per SKU and pair overlaps (using names for display, indexed by UPC order)
+  const idx = Object.fromEntries(launchUPCs.map((upc,i)=>[upc,i]));
   const buyersA = Array(launchNames.length).fill(0);
   const overlapCounts = Array.from({length: launchNames.length}, () => Array(launchNames.length).fill(0));
 
@@ -1801,11 +1806,14 @@ function createAdoptionLagAnalysis() {
   const ctx = document.getElementById('adoptionLag')?.getContext('2d');
   if (!ctx || !dashboardData.detailed) return;
 
-  const launchNames = (dashboardData.launches || []).map(r => String(r.sku_name)).filter(Boolean);
-  if (!launchNames.length) return;
+  const launches = dashboardData.launches || [];
+  if (!launches.length) return;
 
-  // Paid invoices, filtered to Launch SKUs only
-  const paid = buildPaidInvoices(dashboardData.detailed).filter(inv => launchNames.includes(inv.product_name));
+  const launchUPCs = launches.map(r => String(r.upc_norm12)).filter(Boolean);
+  const launchNames = launches.map(r => String(r.sku_name)).filter(Boolean);
+
+  // Paid invoices, filtered to Launch SKUs only (by UPC, not name)
+  const paid = buildPaidInvoices(dashboardData.detailed).filter(inv => launchUPCs.includes(String(inv.upc_item_code_norm12)));
 
   // For each (account, product): days between first and second invoice
   const byAcctProd = _.groupBy(paid, inv => `${inv.canonical_code}::${inv.product_name}`);
@@ -2543,8 +2551,8 @@ function createWeeklyVelocity() {
             // Choose dataset to aggregate
             let paidScoped = paid;
             if (scope === 'product') {
-                // Launch SKUs only to keep legend readable
-                paidScoped = paid.filter(inv => newProductsList.includes(inv.product_name));
+                // Launch SKUs only to keep legend readable (filter by UPC, not name)
+                paidScoped = paid.filter(inv => innovationUPCs.includes(String(inv.upc_item_code_norm12)));
             }
 
             // Key getter per scope
