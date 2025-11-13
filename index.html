@@ -2866,7 +2866,10 @@ function createWeeklyVelocity() {
 
     function createAccountSummaryData() {
         const data2025 = dashboardData.detailed;
-        const today = new Date('2025-09-24'); // Using a fixed "today" for consistent "days since" calculation
+        // Use the latest transaction date from actual data instead of hardcoded date
+        const today = data2025.length > 0
+            ? _.maxBy(data2025.map(d => parseYMD(d.posting_date)).filter(d => d), d => d.getTime()) || new Date()
+            : new Date();
 
         // Step 1: Group all transaction lines by invoice to get invoice-level data
         const invoices = _.chain(data2025)
@@ -3021,7 +3024,10 @@ function createWeeklyVelocity() {
         const container = document.getElementById('accountsForProductTable');
         if (!container) return;
 
-        const today = new Date('2025-09-24');
+        // Use the latest transaction date from actual data instead of hardcoded date
+        const today = productData.length > 0
+            ? _.maxBy(productData.map(d => parseYMD(d.posting_date)).filter(d => d), d => d.getTime()) || new Date()
+            : new Date();
 
         // Step 1: Find and sort all distributors by their revenue for this product
         const distributorsByRevenue = _.chain(productData)
