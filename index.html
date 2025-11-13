@@ -3219,7 +3219,7 @@ function populateTables() {
                 .toPairs()
                 .orderBy([1], ['desc'])
                 .first()
-                .value();
+                .value() || ['N/A', 0];
 
             const topDistributor = _.chain(dashboardData.distributor)
                 .groupBy('distributor')
@@ -3227,7 +3227,7 @@ function populateTables() {
                 .toPairs()
                 .orderBy([1], ['desc'])
                 .first()
-                .value();
+                .value() || ['N/A', 0];
 
             const multiSKUAccounts = _.chain(dashboardData.accounts)
                 .groupBy('canonical_code')
