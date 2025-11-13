@@ -1,0 +1,17 @@
+# Python dependencies for Innovations dashboard automation
+
+# Data processing
+pandas>=2.0.0
+numpy>=1.24.0
+
+# Database connectivity
+psycopg2-binary>=2.9.0
+
+# Machine Learning (for churn prediction)
+scikit-learn>=1.3.0
+
+# Time series forecasting (if using Prophet or similar)
+# prophet>=1.1.0  # Uncomment if using Prophet for forecasting
+
+# Utilities
+python-dateutil>=2.8.2

@@ -1,0 +1,90 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Pipeline execution script: Runs ML/forecast pipelines
+#
+# Usage:
+#   ./scripts/run_pipelines.sh
+
+echo "========================================="
+echo "  Running Analytics Pipelines"
+echo "========================================="
+echo ""
+
+# Check if Python is available
+if ! command -v python3 &> /dev/null; then
+  echo "ERROR: python3 not found. Please install Python 3.8+"
+  exit 1
+fi
+
+# Check if required input file exists
+if [ ! -f "data/products_2025_by_upc.csv" ]; then
+  echo "ERROR: data/products_2025_by_upc.csv not found"
+  echo "Please run scripts/pull_data.sh first"
+  exit 1
+fi
+
+# Create outputs directory if it doesn't exist
+mkdir -p outputs
+
+echo ">> Running churn/reorder prediction pipeline..."
+if [ -f "churn_reorder_pipeline.py" ]; then
+  python3 churn_reorder_pipeline.py \
+    --input data/products_2025_by_upc.csv \
+    --outdir outputs \
+    --horizon_days 60 \
+    --train_start 2024-10-01 \
+    --train_end 2025-06-30 \
+    --valid_start 2025-07-01 \
+    --valid_end 2025-08-31 \
+    --test_start 2025-09-01 \
+    --test_end 2025-09-30
+
+  # Copy prediction output to data/ for dashboard
+  if [ -f "outputs/churn_predictions_60d.csv" ]; then
+    cp outputs/churn_predictions_60d.csv data/churn_predictions_60d.csv
+    echo "   ✓ Churn predictions generated"
+  else
+    echo "   WARNING: Churn predictions file not generated"
+  fi
+else
+  echo "   SKIPPED: churn_reorder_pipeline.py not found"
+fi
+
+echo ""
+echo ">> Running sales forecast pipeline..."
+if [ -f "sales_forecast_pipeline.py" ]; then
+  python3 sales_forecast_pipeline.py \
+    --input data/products_2025_by_upc.csv \
+    --outdir outputs \
+    --group product_distributor \
+    --horizon_months 12 \
+    --date_col posting_date \
+    --revenue_col revenue \
+    --product_col product_name \
+    --distributor_col distributor \
+    --salesrep_col sales_rep
+
+  # Copy forecast outputs if they exist
+  if ls outputs/forecast*.csv 1> /dev/null 2>&1; then
+    cp outputs/forecast*.csv data/ 2>/dev/null || true
+    echo "   ✓ Sales forecasts generated"
+  else
+    echo "   WARNING: No forecast files generated"
+  fi
+else
+  echo "   SKIPPED: sales_forecast_pipeline.py not found"
+fi
+
+echo ""
+echo "========================================="
+echo "  ✓ Pipelines complete!"
+echo "========================================="
+echo ""
+
+# List generated files
+if ls data/*.csv 1> /dev/null 2>&1; then
+  echo "Updated data files:"
+  ls -lh data/*.csv | awk '{print "  - "$9" ("$5")"}'
+  echo ""
+fi

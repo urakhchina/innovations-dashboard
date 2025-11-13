@@ -1,0 +1,89 @@
+name: Refresh Innovations Data
+
+on:
+  # Manual trigger
+  workflow_dispatch: {}
+
+  # Nightly at 7:15 AM UTC (11:15 PM PST / 12:15 AM PDT)
+  schedule:
+    - cron: "15 7 * * *"
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Install PostgreSQL client
+        run: sudo apt-get update && sudo apt-get install -y postgresql-client
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: 'pip'
+
+      - name: Install Python dependencies
+        run: |
+          if [ -f requirements.txt ]; then
+            pip install -r requirements.txt
+          else
+            echo "No requirements.txt found, skipping pip install"
+          fi
+
+      - name: Pull CSVs from AWS RDS
+        env:
+          PSQL_DSN: ${{ secrets.PSQL_DSN }}
+        run: |
+          echo "Pulling fresh data from AWS RDS..."
+          scripts/pull_data.sh
+
+      - name: Run analytics pipelines
+        run: |
+          echo "Running churn and forecast pipelines..."
+          scripts/run_pipelines.sh || echo "WARNING: Pipelines had errors but continuing..."
+
+      - name: Check for data changes
+        id: check_changes
+        run: |
+          if git diff --quiet data/*.csv; then
+            echo "changed=false" >> $GITHUB_OUTPUT
+            echo "No data changes detected"
+          else
+            echo "changed=true" >> $GITHUB_OUTPUT
+            echo "Data changes detected"
+          fi
+
+      - name: Commit and push data changes
+        if: steps.check_changes.outputs.changed == 'true'
+        run: |
+          git config user.name "innovations-bot"
+          git config user.email "innovations-bot@users.noreply.github.com"
+
+          git add data/*.csv
+          git add outputs/*.csv || true
+
+          git commit -m "Auto-refresh data: $(date -u '+%Y-%m-%d %H:%M UTC')"
+          git push
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Trigger Vercel redeploy
+        if: steps.check_changes.outputs.changed == 'true' && secrets.VERCEL_HOOK_URL != ''
+        run: |
+          echo "Triggering Vercel rebuild..."
+          curl -X POST "${{ secrets.VERCEL_HOOK_URL }}"
+
+      - name: Summary
+        run: |
+          echo "## Refresh Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **Data Changed:** ${{ steps.check_changes.outputs.changed }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Timestamp:** $(date -u '+%Y-%m-%d %H:%M UTC')" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Generated Files" >> $GITHUB_STEP_SUMMARY
+          ls -lh data/*.csv | awk '{print "- "$9" ("$5")"}' >> $GITHUB_STEP_SUMMARY || true
