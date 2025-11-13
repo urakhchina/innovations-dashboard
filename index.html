@@ -939,7 +939,7 @@
         loadCSV('data/summary_salesrep.csv'),
         loadCSV('data/summary_distributor.csv'),
         loadCSV('data/summary_accounts_top50.csv'),
-        loadCSV('data/products_2025_by_upc.csv'),
+        loadCSV('data/innovations_transactions_2025.csv'),
 
         // plan (optional)
         fetch('data/plan_targets_2025.csv')
@@ -2676,9 +2676,9 @@ function createWeeklyVelocity() {
 
 
         async function runDataDiagnostics() {
-        console.log("%c--- STARTING DATA DIAGNOSTICS on products_2025_by_upc.csv ---", "color: yellow; font-size: 14px;");
+        console.log("%c--- STARTING DATA DIAGNOSTICS on innovations_transactions_2025.csv ---", "color: yellow; font-size: 14px;");
         try {
-            const fileContent = await fetch('data/products_2025_by_upc.csv').then(res => res.text());
+            const fileContent = await fetch('data/innovations_transactions_2025.csv').then(res => res.text());
             const data = Papa.parse(fileContent, { header: true, dynamicTyping: true, skipEmptyLines: true }).data;
 
             console.log(`Total rows loaded for diagnostics: ${data.length}`);
@@ -2707,7 +2707,7 @@ function createWeeklyVelocity() {
             }
 
         } catch (error) {
-            console.error("Could not run diagnostics. Failed to load or parse products_2025_by_upc.csv.", error);
+            console.error("Could not run diagnostics. Failed to load or parse innovations_transactions_2025.csv.", error);
         }
         console.log("%c--- DATA DIAGNOSTICS COMPLETE ---", "color: yellow; font-size: 14px;");
     }

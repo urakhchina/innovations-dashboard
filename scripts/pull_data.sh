@@ -44,8 +44,9 @@ echo "Starting data extraction from AWS RDS..."
 echo ""
 
 # Execute all SQL queries
-run_sql sql/products_2025_by_upc.sql      data/products_2025_by_upc.csv
-run_sql sql/summary_monthly.sql           data/summary_monthly.csv
+run_sql sql/products_2025_by_upc.sql           data/products_2025_by_upc.csv
+run_sql sql/innovations_transactions_2025.sql  data/innovations_transactions_2025.csv
+run_sql sql/summary_monthly.sql                data/summary_monthly.csv
 run_sql sql/summary_distributor.sql       data/summary_distributor.csv
 run_sql sql/summary_salesrep.sql          data/summary_salesrep.csv
 run_sql sql/summary_accounts_top50.sql    data/summary_accounts_top50.csv
