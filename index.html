@@ -1736,7 +1736,8 @@ _Report generated on ${new Date().toISOString().slice(0,10)}_`);
             const color = ['#667eea', '#764ba2', '#f093fb', '#f5576c', '#4ade80', '#fbbf24', '#ef4444', '#22c55e'][index % 8];
             const actualData = months.map(month => monthlyByProduct[month]?.[product] || 0);
 
-            // Stop actual data at second-to-last month (the last month will be shown in forecast)
+            // Keep actual data through second-to-last month (forecast will overlap at that point)
+            // This allows forecast to connect FROM the last complete month
             const trimmedData = actualData.slice(0, -1);
 
             // Pad with nulls for last month + future months
@@ -1771,17 +1772,18 @@ _Report generated on ${new Date().toISOString().slice(0,10)}_`);
             }
 
             // Project forward with trend
-            // Start forecast AT the last month (not after it) to eliminate visual gap
-            const forecastData = Array(months.length - 1).fill(null);
+            // Start forecast FROM the last actual data point (October) to create smooth transition
+            const forecastData = Array(months.length - 2).fill(null);
 
-            // Use the 3-month average as the starting point for forecast
-            // This smooths out partial month data (like November with only 13 days)
-            const forecastStartValue = avgLast3 > 0 ? avgLast3 : actualData[actualData.length - 1];
+            // Connect from October's actual value
+            const lastActualValue = actualData[actualData.length - 2]; // October
+            forecastData.push(lastActualValue); // Start at October
 
-            forecastData.push(forecastStartValue); // Replace last month with 3-month average
+            // Project Nov, Dec, Jan, Feb using the 3-month average + trend
+            const forecastBaseline = avgLast3 > 0 ? avgLast3 : lastActualValue;
 
-            for (let i = 1; i <= futureMonths.length; i++) {
-                const projected = Math.max(0, avgLast3 + (trend * i * 0.5)); // Dampen trend by 50%
+            for (let i = 0; i <= futureMonths.length; i++) {
+                const projected = Math.max(0, forecastBaseline + (trend * i * 0.5)); // Dampen trend by 50%
                 forecastData.push(projected);
             }
 
