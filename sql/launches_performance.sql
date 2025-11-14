@@ -15,7 +15,7 @@ WITH launch_list(product_label, upc_dashed) AS (
     ('Stress-Defy Balanced Calm Focused (G)','8-40081-41348-7'),
     ('Milk Thistle Liver Detox (G)','8-40081-41356-2'),
     ('Maca Root + Ashwagandha (G)','8-40081-41352-4'),
-    ('Testosterone Up Peak Performance (G)','8-40081-41369'),
+    ('Testosterone Up Peak Performance (G)','8-40081-41360-9'),
     ('Magnesium + Whole-Body Balance (G)','8-40081-41368-5')
 ),
 launches AS (
