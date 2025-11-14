@@ -1518,7 +1518,7 @@ _Report generated on ${new Date().toISOString().slice(0,10)}_`);
         { label: 'Active Distributors', value: distributorCount, change: '' },
         { label: 'Active Sales Reps', value: _.uniqBy(data2025.filter(d => d.sales_rep), 'sales_rep').length, change: '' },
         { label: 'Paid Accounts', value: paidAccountsCount.toLocaleString(), change: `${totalAccountsWithActivity.toLocaleString()} with any activity` },
-        { label: 'Products Launched', value: '8', change: 'Data since Jan 2025' }
+        { label: 'Products Launched', value: newProductsList.length, change: 'Data since Jan 2025' }
     ];
     
     // --- 6. RENDER THE CARDS ---
