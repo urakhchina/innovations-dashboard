@@ -233,30 +233,78 @@ def account_features_asof(inv: pd.DataFrame, asof: pd.Timestamp, cfg: SnapshotCo
     g90 = agg_window(w90, "90d")
     g180 = agg_window(w180, "180d")
 
-    # --- Reorder interval history over long window (median days between orders) ---
-    # Build per-account day deltas between consecutive invoices inside the 180d window
-    intervals = (
+    # --- Reorder interval history: THREE approaches ---
+    # 1. Historical baseline (180d window)
+    # 2. Recent behavior using LAST N INVOICES instead of time window
+    # 3. Time window approach (90d) for comparison
+
+    # 180d interval (historical baseline)
+    intervals_180 = (
         w180.sort_values(["account_id", "invoice_date"])
         .groupby("account_id")["invoice_date"]
-        .apply(lambda s: s.diff().dt.days)    # Series of deltas (may include NaN for first row)
+        .apply(lambda s: s.diff().dt.days)
         .dropna()
     )
 
-    # Median interval (in days) per account_id
-    if intervals.empty:
-        inter_stats = pd.DataFrame(columns=["median_interval_180d"])
-    else:
-        inter_stats = (
-            intervals.groupby(level=0).median()   # Series indexed by account_id
-                    .rename("median_interval_180d")
-                    .to_frame()
-        )
+    # IMPROVED: Most recent N invoices (more robust than time windows)
+    # For each account, take last 5 invoices and calculate median interval
+    # Using 5 instead of 10 to focus on very recent behavior and exclude older outliers
+    # Example: iHerb's last 5 orders exclude the 48-day summer gap, showing true recent pattern
+    def calc_recent_n_interval(account_invoices, n=5):
+        """Calculate median interval from most recent N invoices"""
+        # Handle single invoice case (groupby returns a single Timestamp, not a Series)
+        if isinstance(account_invoices, pd.Timestamp):
+            return 0.0
+        if len(account_invoices) < 2:
+            return 0.0
+        # Take last N invoices (or all if less than N)
+        recent = account_invoices.tail(n) if len(account_invoices) > n else account_invoices
+        # Calculate intervals
+        intervals = recent.diff().dt.days.dropna()
+        if intervals.empty:
+            return 0.0
+        return intervals.median()
 
-    # if above failed due to dtype, compute manually
-    if not isinstance(inter_stats, pd.DataFrame):
-        inter_stats = pd.DataFrame({
-            "median_interval_180d": intervals.groupby(level=0).median()
-        })
+    # Get all invoices per account (not filtered by time window)
+    # Use transform=False and group_keys=False to avoid multi-index
+    all_invoices_df = inv[inv["invoice_date"] <= asof][["account_id", "invoice_date"]].copy()
+
+    median_recent_5_list = []
+    for account, group in all_invoices_df.groupby("account_id"):
+        dates = group["invoice_date"].sort_values()
+        interval = calc_recent_n_interval(dates, n=5)
+        median_recent_5_list.append({"account_id": account, "median_interval_recent5": interval})
+
+    median_recent_5 = pd.DataFrame(median_recent_5_list).set_index("account_id")["median_interval_recent5"]
+
+    # Also calculate 90d for comparison (old approach)
+    intervals_90 = (
+        w90.sort_values(["account_id", "invoice_date"])
+        .groupby("account_id")["invoice_date"]
+        .apply(lambda s: s.diff().dt.days)
+        .dropna()
+    )
+
+    # Build interval stats dataframe
+    inter_stats = pd.DataFrame()
+
+    # Median interval 180d (historical)
+    if not intervals_180.empty:
+        inter_stats["median_interval_180d"] = intervals_180.groupby(level=0).median()
+
+    # Median interval from last 5 invoices (recent)
+    if not median_recent_5.empty:
+        inter_stats["median_interval_recent5"] = median_recent_5
+
+    # Median interval 90d (for comparison)
+    if not intervals_90.empty:
+        inter_stats["median_interval_90d"] = intervals_90.groupby(level=0).median()
+
+    # Ensure all expected columns exist (fill missing with 0)
+    for col in ["median_interval_180d", "median_interval_recent5", "median_interval_90d"]:
+        if col not in inter_stats.columns:
+            inter_stats[col] = 0.0
+    inter_stats = inter_stats.fillna(0)
 
     # simple seasonality: month as cyclical
     # assign account-level month dummies based on last invoice month
@@ -277,16 +325,55 @@ def account_features_asof(inv: pd.DataFrame, asof: pd.Timestamp, cfg: SnapshotCo
     feats.reset_index(inplace=True)
     feats.rename(columns={"index":"account_id"}, inplace=True)
 
-    # CRITICAL FEATURE: Days into reorder cycle (0.0 = just ordered, 1.0 = at expected reorder point, >1.0 = overdue)
-    # This helps model distinguish:
-    #   - Accounts with 21-day cycles at day 18 (0.86 = about to reorder soon!)
-    #   - Accounts with 90-day cycles at day 18 (0.20 = just restocked, won't reorder for 2+ months)
+    # IMPROVED FEATURE 1: Days into reorder cycle using RECENT 5 INVOICES
+    # Uses median interval from last 5 invoices instead of time windows or last 10
+    # 5 invoices is short enough to exclude older outliers while still being stable
+    # Example: iHerb's last 5 orders exclude the 48-day summer gap, showing true ~10 day pattern
     feats["days_into_cycle"] = feats.apply(
-        lambda row: row["days_since_last"] / row["median_interval_180d"]
-                    if row["median_interval_180d"] > 0
-                    else 0.0,
+        lambda row: row["days_since_last"] / row["median_interval_recent5"]
+                    if row["median_interval_recent5"] > 0
+                    else (row["days_since_last"] / row["median_interval_180d"]
+                          if row["median_interval_180d"] > 0
+                          else 0.0),
         axis=1
     )
+
+    # IMPROVED FEATURE 2: Velocity trend (are they ordering faster or slower lately?)
+    # Ratio of historical (180d) to recent (last 5 invoices) interval
+    #   > 1.0 = Accelerating (ordering faster recently) → LOW RISK
+    #   < 1.0 = Decelerating (ordering slower recently) → HIGH RISK
+    #   ≈ 1.0 = Stable → NEUTRAL
+    # Example: iHerb has velocity_trend = 14/10 = 1.4 (ordering faster) → LOW RISK
+    feats["velocity_trend"] = feats.apply(
+        lambda row: row["median_interval_180d"] / row["median_interval_recent5"]
+                    if row["median_interval_recent5"] > 0 and row["median_interval_180d"] > 0
+                    else 1.0,  # Default to stable (1.0) if we can't calculate
+        axis=1
+    )
+
+    # NEW FEATURE 3: Overdue severity (exponential penalty for being late)
+    # Squaring days_into_cycle gives exponential penalty:
+    #   1.0x overdue → 1.0
+    #   2.0x overdue → 4.0  (Papaya's case: 2.25x → 5.06)
+    #   3.0x overdue → 9.0
+    # This helps model distinguish "slightly late" from "very late"
+    feats["overdue_severity"] = feats["days_into_cycle"] ** 2
+
+    # NEW FEATURE 4: Is severely overdue (binary flag)
+    # Flag customers who are >2x their normal cycle
+    # Papaya's: 18 days / 8 days = 2.25x → severely overdue
+    # iHerb: 12 days / 10 days = 1.2x → not severely overdue (yet)
+    feats["is_severely_overdue"] = (feats["days_into_cycle"] > 2.0).astype(float)
+
+    # NEW FEATURE 5: High-frequency flag
+    # Customers with 8+ orders in 90d are "high frequency"
+    # These customers should be MORE at-risk when they become overdue (not less)
+    # because missing a cycle is more anomalous for them
+    feats["is_high_frequency"] = (feats["orders_90d"] >= 8).astype(float)
+
+    # NEW FEATURE 6: Interaction term - high frequency + overdue
+    # Strong signal: A frequent customer who is overdue is VERY high risk
+    feats["high_freq_overdue"] = feats["is_high_frequency"] * feats["is_severely_overdue"]
 
     # CRITICAL FIX: Flag one-time buyers (accounts with only 1 invoice ever)
     # These should be HIGH RISK by default since they have no reorder history to establish a pattern
@@ -296,6 +383,7 @@ def account_features_asof(inv: pd.DataFrame, asof: pd.Timestamp, cfg: SnapshotCo
     # For one-time buyers, set days_into_cycle to a very high sentinel value (999)
     # This signals "no history = high risk" to the model (instead of 0 = "just ordered = low risk")
     feats.loc[feats["is_one_time_buyer"] == 1, "days_into_cycle"] = 999.0
+    feats.loc[feats["is_one_time_buyer"] == 1, "overdue_severity"] = 999.0
 
     # target index column
     feats["asof_date"] = asof
