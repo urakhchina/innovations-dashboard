@@ -940,13 +940,15 @@ ${bottomProductTable}
                 const freeFillUnits = _.sumBy(freeFillLines, d => Number(d.quantity) || 0);
                 const freeFillAccounts = new Set(freeFillLines.map(d => d.canonical_code)).size;
 
-                // Conversion: accounts with free fill who also have paid invoices
-                const freeFillAccountIds = new Set(freeFillLines.map(d => d.canonical_code));
-                const paidLines = dashboardData.detailed.filter(d => Number(d.revenue) > 0);
-                const convertedAccounts = new Set(paidLines.filter(d => freeFillAccountIds.has(d.canonical_code)).map(d => d.canonical_code)).size;
-                const conversionRate = freeFillAccounts > 0 ? (convertedAccounts / freeFillAccounts) * 100 : 0;
+                // Only show Free Fill section if there's actual data
+                if (freeFillAccounts > 0) {
+                    // Conversion: accounts with free fill who also have paid invoices
+                    const freeFillAccountIds = new Set(freeFillLines.map(d => d.canonical_code));
+                    const paidLines = dashboardData.detailed.filter(d => Number(d.revenue) > 0);
+                    const convertedAccounts = new Set(paidLines.filter(d => freeFillAccountIds.has(d.canonical_code)).map(d => d.canonical_code)).size;
+                    const conversionRate = freeFillAccounts > 0 ? (convertedAccounts / freeFillAccounts) * 100 : 0;
 
-                sections.push(`## 🎁 Free Fill Analysis
+                    sections.push(`## 🎁 Free Fill Analysis
 
 > **Free Fill Program Performance**
 
@@ -963,6 +965,7 @@ ${bottomProductTable}
 - ${freeFillAccounts > 0 ? `Average units per free fill account: ${(freeFillUnits / freeFillAccounts).toFixed(1)}` : 'No free fill activity'}
 
 ---`);
+                }
             }
 
             // === ORIGINAL SECTIONS (Always included) ===
