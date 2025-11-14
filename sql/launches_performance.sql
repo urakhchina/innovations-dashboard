@@ -11,12 +11,12 @@ WITH launch_list(product_label, upc_dashed) AS (
     ('Milk Thistle Triple-Detox','8-40081-41326-5'),
     ('Alpha-Choline Brain & Muscle Support Extra-Strength','8-40081-41322-7'),
     -- Q4 Gummies Launch
-    ('Apple Cider Vinegar + Metabolism','8-40081-41344-9'),
-    ('Stress-Defy Balanced Calm Focused','8-40081-41348-7'),
-    ('Milk Thistle Liver Detox','8-40081-41356-2'),
-    ('Maca Root + Ashwagandha','8-40081-41352-4'),
-    ('Testosterone Up Peak Performance','8-40081-41369'),
-    ('Magnesium + Whole-Body Balance','8-40081-41368-5')
+    ('Apple Cider Vinegar + Metabolism (G)','8-40081-41344-9'),
+    ('Stress-Defy Balanced Calm Focused (G)','8-40081-41348-7'),
+    ('Milk Thistle Liver Detox (G)','8-40081-41356-2'),
+    ('Maca Root + Ashwagandha (G)','8-40081-41352-4'),
+    ('Testosterone Up Peak Performance (G)','8-40081-41369'),
+    ('Magnesium + Whole-Body Balance (G)','8-40081-41368-5')
 ),
 launches AS (
   SELECT
