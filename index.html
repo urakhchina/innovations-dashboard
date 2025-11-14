@@ -470,7 +470,7 @@
         <div class="table-container full-width">
           <h3>🎯 Sales Rep Leaderboard</h3>
           <div style="font-size: 0.9em; color: #a0a0a0; margin-bottom: 15px;">
-            Note: All metrics are based on paid invoices (revenue > 0) to exclude free goods and returns.
+            Note: Revenue totals include chargebacks/returns deducted. Count metrics (invoices, accounts) based on paid orders only.
           </div>
           <table id="repLeaderboard"></table>
         </div>
@@ -3290,7 +3290,8 @@ function populateTables() {
     // --- 3. Sales Rep Leaderboard ---
     const repLeaderboard = document.getElementById('repLeaderboard');
     if (repLeaderboard) {
-        const invoices = _.chain(dashboardData.detailed)
+        // Build all invoices (including returns/chargebacks with negative revenue)
+        const allInvoices = _.chain(dashboardData.detailed)
             .groupBy(d => `${d.distributor}-${d.canonical_code}-${d.ship_to_code}-${d.posting_date}`)
             .map(lines => ({
                 sales_rep: lines[0].sales_rep,
@@ -3299,19 +3300,23 @@ function populateTables() {
                 revenue: _.sumBy(lines, 'revenue'),
                 units: _.sumBy(lines, 'quantity')
             }))
-            .filter(inv => inv.revenue > 0)
             .value();
 
-        const repData = _.chain(invoices)
+        const repData = _.chain(allInvoices)
             .groupBy('sales_rep')
             .map((repInvoices, repId) => {
+                // Net revenue includes returns/chargebacks (negative values deducted automatically)
                 const revenueYTD = _.sumBy(repInvoices, 'revenue');
                 const unitsYTD = _.sumBy(repInvoices, 'units');
-                const paidInvoices = repInvoices.length;
-                const aov = paidInvoices > 0 ? revenueYTD / paidInvoices : 0;
+
+                // Count-based metrics use only paid invoices (revenue > 0)
+                const paidInvoices = repInvoices.filter(inv => inv.revenue > 0);
+                const paidInvoiceCount = paidInvoices.length;
+                const paidRevenue = _.sumBy(paidInvoices, 'revenue');
+                const aov = paidInvoiceCount > 0 ? paidRevenue / paidInvoiceCount : 0;
                 const asp = unitsYTD > 0 ? revenueYTD / unitsYTD : 0;
-                const activeAccounts = _.uniqBy(repInvoices, 'canonical_code').length;
-                const accountsWithReorder = _.chain(repInvoices).groupBy('canonical_code').map(acctInvoices => {
+                const activeAccounts = _.uniqBy(paidInvoices, 'canonical_code').length;
+                const accountsWithReorder = _.chain(paidInvoices).groupBy('canonical_code').map(acctInvoices => {
                     if (acctInvoices.length < 2) return 0;
                     const sortedDates = _.orderBy(acctInvoices, 'posting_date', 'asc');
                     for (let i = 1; i < sortedDates.length; i++) {
@@ -3320,7 +3325,7 @@ function populateTables() {
                     return 0;
                 }).sum().value();
                 const reorderRate = activeAccounts > 0 ? (accountsWithReorder / activeAccounts) * 100 : 0;
-                return { repId, revenueYTD, unitsYTD, paidInvoices, aov, asp, activeAccounts, reorderRate };
+                return { repId, revenueYTD, unitsYTD, paidInvoices: paidInvoiceCount, aov, asp, activeAccounts, reorderRate };
             })
             .value();
         
