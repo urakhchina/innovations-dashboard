@@ -1,6 +1,6 @@
 # 2025 New Product Launch Analytics Dashboard
 
-Analytics dashboard tracking Irwin Naturals' 2025 new product launches with data from AWS RDS.
+New product launches, innovation tracking, and market insights dashboard.
 
 ## Features
 
@@ -34,7 +34,7 @@ The script will:
 ```
 Source: AWS RDS (ebdb) → Transform: SQL + Python → Deploy: Vercel
                  ↓
-          GitHub Actions (nightly)
+          Manual Refresh (local)
                  ↓
          CSV Files (data/) → index.html
 ```
@@ -99,14 +99,10 @@ In your GitHub repository, add these secrets:
 
 2. **VERCEL_HOOK_URL** (optional): Vercel deploy hook URL
    - Go to Vercel → Project Settings → Git → Deploy Hooks
-   - Create hook named "Innovations Auto-Refresh"
+   - Create hook named "Innovations Deploy"
    - Copy the URL
 
-### 5. Enable GitHub Actions
-
-The workflow is configured to run:
-- **Nightly** at 7:15 AM UTC (11:15 PM PST)
-- **Manually** via "Actions" tab → "Refresh Innovations Data" → "Run workflow"
+**Note**: GitHub Actions workflow is currently disabled. Data refresh is manual via `update_data.sh`.
 
 ## Data Files
 
