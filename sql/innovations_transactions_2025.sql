@@ -2,7 +2,7 @@
 -- Includes all fields required by the dashboard
 COPY (
 WITH innovation_upcs AS (
-  -- The 8 new innovation product UPCs for 2025
+  -- The 14 new innovation product UPCs for 2025 (8 original + 6 Q4 gummies)
   SELECT upc_norm12
   FROM (VALUES
     ('710363592127'), -- Collagen Beauty
@@ -12,7 +12,14 @@ WITH innovation_upcs AS (
     ('840081413166'), -- Power to Sleep Magnesium PM + Relaxing Flower Complex
     ('840081413043'), -- Turbo-Energy Libido-Max RED
     ('840081413265'), -- Milk Thistle Triple-Detox
-    ('840081413227')  -- Alpha-Choline Brain & Muscle Support Extra-Strength
+    ('840081413227'), -- Alpha-Choline Brain & Muscle Support Extra-Strength
+    -- Q4 Gummies
+    ('840081413449'), -- Apple Cider Vinegar + Metabolism
+    ('840081413487'), -- Stress-Defy Balanced Calm Focused
+    ('840081413562'), -- Milk Thistle Liver Detox
+    ('840081413524'), -- Maca Root + Ashwagandha
+    ('840081413609'), -- Testosterone Up Peak Performance
+    ('840081413685')  -- Magnesium + Whole-Body Balance
   ) AS t(upc_norm12)
 )
 SELECT
