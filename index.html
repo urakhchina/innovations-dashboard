@@ -2540,7 +2540,24 @@ function createFreeFillByTypeTable() {
             const projectedRemainingUnits = projectedMonthlyUnits * remainingMonths;
             const totalYEP = ytdActual + projectedRemaining;
             const totalUnitsYEP = ytdUnits + projectedRemainingUnits;
-            
+
+            // Debug logging for Testosterone gummy
+            if (productName.includes('Testosterone') && productName.includes('(G)')) {
+                console.log(`[YEP DEBUG] ${productName}:`, {
+                    ytdActual,
+                    monthsActive,
+                    launchMonth,
+                    latestMonthIndex,
+                    remainingMonths,
+                    avgRecentMonthlyRevenue,
+                    growthTrend,
+                    cappedGrowth,
+                    projectedMonthlyRevenue,
+                    projectedRemaining,
+                    totalYEP
+                });
+            }
+
             let confidence = "Low";
             if (monthsActive >= 3) confidence = "High";
             else if (monthsActive === 2) confidence = "Medium";
