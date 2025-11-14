@@ -869,6 +869,7 @@ ${riskTable}
             if (includePerformers) {
                 // Top 5 Products
                 const productPerf = _.chain(dashboardData.detailed)
+                    .filter(d => d.product_label && String(d.product_label).trim() !== '')
                     .groupBy('product_label')
                     .map((lines, product) => ({
                         product,
@@ -895,6 +896,7 @@ ${riskTable}
 
                 // Top 5 Distributors
                 const distPerf = _.chain(dashboardData.detailed)
+                    .filter(d => d.distributor && String(d.distributor).trim() !== '')
                     .groupBy('distributor')
                     .map((lines, distributor) => ({
                         distributor,
