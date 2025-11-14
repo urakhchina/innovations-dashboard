@@ -2567,6 +2567,14 @@ function createFreeFillByTypeTable() {
         .orderBy('totalYEP', 'desc')
         .value();
 
+    // Debug: Log what's actually in the array being rendered
+    console.log('[YEP DEBUG] Full productProjections array:', productProjections.map(p => ({
+        name: p.name,
+        totalYEP: p.totalYEP,
+        ytdActual: p.ytdActual,
+        projectedRemaining: p.projectedRemaining
+    })));
+
     if (charts.yearEndProjection) charts.yearEndProjection.destroy();
     
     charts.yearEndProjection = new Chart(ctx, {
@@ -2658,10 +2666,26 @@ function createFreeFillByTypeTable() {
         .map((rows, m) => ({ month:m, revenue: _.sumBy(rows, 'revenue') }))
         .sortBy('month').value();
       const ytdActual = _.sumBy(monthly, 'revenue');
-      // “(b) last-3-months annualized” flavor for pace:
+
+      // Calculate remaining months in 2025 (not until product is 12 months old)
+      const latestMonthInData = monthly.length > 0 ? parseAsLocalDate(monthly[monthly.length - 1].month + '-01') : new Date();
+      const latestMonthIndex = latestMonthInData.getMonth(); // 0-11
+      const remainingMonthsIn2025 = 11 - latestMonthIndex; // months left until Dec (month 11)
+
+      // Use last 3 months average with growth trend and dampening
       const last3 = monthly.slice(-3);
       const avgRecent = _.meanBy(last3, 'revenue') || 0;
-      const yePace = ytdActual + avgRecent * (12 - monthly.length); // simple annualization to year end
+
+      let growthTrend = 0;
+      if (last3.length > 1) {
+        const first = last3[0].revenue;
+        const last = last3[last3.length - 1].revenue;
+        growthTrend = first > 0 ? (last - first) / first : 0;
+      }
+      const cappedGrowth = Math.min(Math.max(growthTrend, -0.1), 0.20);
+      const projectedMonthly = avgRecent * (1 + cappedGrowth) * 0.95;
+
+      const yePace = ytdActual + (projectedMonthly * remainingMonthsIn2025);
 
       const fyPlan = fyPlanFor('product', name);
       const pace = (fyPlan && fyPlan > 0) ? (yePace / fyPlan) : null;
