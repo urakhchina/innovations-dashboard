@@ -1298,19 +1298,25 @@ _Report generated on ${new Date().toISOString().slice(0,10)}_`);
             // 1. Create a single, clean master dataset from the detailed file
             // Filter by UPC instead of product name (product names have inconsistent formatting)
             // Note: Convert UPC to string because Papa Parse dynamicTyping may convert to number
+            // First, normalize all UPCs to 12-digit strings with leading zeros (fixes dynamicTyping stripping leading zeros)
+            detailedData = detailedData.map(d => ({
+                ...d,
+                upc_item_code_norm12: String(d.upc_item_code_norm12 || '').padStart(12, '0')
+            }));
+
             let masterData = detailedData.filter(d =>
-                d.year === 2025 && innovationUPCs.includes(String(d.upc_item_code_norm12))
+                d.year === 2025 && innovationUPCs.includes(d.upc_item_code_norm12)
             );
 
             console.log(`%c[DATA FILTER] Loaded ${detailedData.length} total rows, filtered to ${masterData.length} innovation product rows`, 'color: cyan; font-weight: bold');
             console.log(`%c[DATA FILTER] Total revenue in filtered data: $${_.sumBy(masterData.filter(d => d.revenue > 0), 'revenue').toLocaleString()}`, 'color: cyan; font-weight: bold');
 
             // CRITICAL FIX: Normalize all product names to canonical names based on UPC
-            // This prevents issues with product name variations like "COLLAGEN BEAUTY 80CAP" vs "Collagen Beauty"
+            // This prevents issues with product name variations like "APPLE CIDER VINEGAR + METABOLISM 40GUMMIES" vs "Apple Cider Vinegar + Metabolism (G)"
             // Now all downstream groupBy operations will use consistent canonical names
             masterData = masterData.map(d => ({
                 ...d,
-                product_name: upcToCanonicalName[String(d.upc_item_code_norm12)] || d.product_name
+                product_name: upcToCanonicalName[d.upc_item_code_norm12] || d.product_name
             }));
 
             console.log(`%c[DATA NORMALIZATION] Normalized ${masterData.length} rows to canonical product names`, 'color: lime; font-weight: bold');
