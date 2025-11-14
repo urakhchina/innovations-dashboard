@@ -1736,8 +1736,11 @@ _Report generated on ${new Date().toISOString().slice(0,10)}_`);
             const color = ['#667eea', '#764ba2', '#f093fb', '#f5576c', '#4ade80', '#fbbf24', '#ef4444', '#22c55e'][index % 8];
             const actualData = months.map(month => monthlyByProduct[month]?.[product] || 0);
 
-            // Pad with nulls for future months
-            const paddedData = [...actualData, ...Array(futureMonths.length).fill(null)];
+            // Stop actual data at second-to-last month (the last month will be shown in forecast)
+            const trimmedData = actualData.slice(0, -1);
+
+            // Pad with nulls for last month + future months
+            const paddedData = [...trimmedData, ...Array(futureMonths.length + 1).fill(null)];
 
             return {
                 label: product,
@@ -1768,13 +1771,14 @@ _Report generated on ${new Date().toISOString().slice(0,10)}_`);
             }
 
             // Project forward with trend
-            const forecastData = Array(months.length).fill(null);
+            // Start forecast AT the last month (not after it) to eliminate visual gap
+            const forecastData = Array(months.length - 1).fill(null);
 
             // Use the 3-month average as the starting point for forecast
             // This smooths out partial month data (like November with only 13 days)
             const forecastStartValue = avgLast3 > 0 ? avgLast3 : actualData[actualData.length - 1];
 
-            forecastData.push(forecastStartValue); // Connect forecast to 3-month average
+            forecastData.push(forecastStartValue); // Replace last month with 3-month average
 
             for (let i = 1; i <= futureMonths.length; i++) {
                 const projected = Math.max(0, avgLast3 + (trend * i * 0.5)); // Dampen trend by 50%
