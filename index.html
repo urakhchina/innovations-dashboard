@@ -3290,9 +3290,10 @@ function populateTables() {
                 .first()
                 .value() || ['N/A', 0];
 
-            // Calculate distributor market share (dashboardData.distributor is already filtered to innovations from masterData)
-            const totalDistributorRevenue = _.sumBy(dashboardData.distributor, 'revenue_ytd');
-            const topDistributor = _.chain(dashboardData.distributor)
+            // Calculate distributor market share - filter to positive revenue only (paid invoices, exclude returns)
+            const paidDistributor = dashboardData.distributor.filter(r => r.revenue_ytd > 0);
+            const totalDistributorRevenue = _.sumBy(paidDistributor, 'revenue_ytd');
+            const topDistributor = _.chain(paidDistributor)
                 .groupBy('distributor')
                 .mapValues(records => _.sumBy(records, 'revenue_ytd'))
                 .toPairs()
