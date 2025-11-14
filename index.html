@@ -1769,7 +1769,20 @@ _Report generated on ${new Date().toISOString().slice(0,10)}_`);
 
             // Project forward with trend
             const forecastData = Array(months.length).fill(null);
-            forecastData.push(actualData[actualData.length - 1]); // Connect to last actual point
+
+            // Find the last non-zero actual data point to connect forecast smoothly
+            let lastActualValue = actualData[actualData.length - 1];
+            if (lastActualValue === 0 || lastActualValue === null) {
+                // Find last non-zero value
+                for (let i = actualData.length - 1; i >= 0; i--) {
+                    if (actualData[i] > 0) {
+                        lastActualValue = actualData[i];
+                        break;
+                    }
+                }
+            }
+
+            forecastData.push(lastActualValue || avgLast3); // Connect to last actual point (or use average if all zeros)
 
             for (let i = 1; i <= futureMonths.length; i++) {
                 const projected = Math.max(0, avgLast3 + (trend * i * 0.5)); // Dampen trend by 50%
