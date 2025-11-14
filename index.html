@@ -1721,83 +1721,19 @@ _Report generated on ${new Date().toISOString().slice(0,10)}_`);
         const months = Object.keys(monthlyByProduct).sort();
         const products = newProductsList;
 
-        // Generate 3 future months for forecasting
-        const lastMonth = parseAsLocalDate(months[months.length - 1]);
-        const futureMonths = [];
-        for (let i = 1; i <= 3; i++) {
-            const futureDate = new Date(lastMonth.getFullYear(), lastMonth.getMonth() + i, 1);
-            const futureMonthStr = `${futureDate.getFullYear()}-${String(futureDate.getMonth() + 1).padStart(2, '0')}-01`;
-            futureMonths.push(futureMonthStr);
-        }
-        const allMonths = [...months, ...futureMonths];
-
-        // Create actual data datasets
+        // Create actual data datasets only (no forecasts until we have more data)
         const actualDatasets = products.map((product, index) => {
             const color = ['#667eea', '#764ba2', '#f093fb', '#f5576c', '#4ade80', '#fbbf24', '#ef4444', '#22c55e'][index % 8];
             const actualData = months.map(month => monthlyByProduct[month]?.[product] || 0);
 
-            // Keep actual data through second-to-last month (forecast will overlap at that point)
-            // This allows forecast to connect FROM the last complete month
-            const trimmedData = actualData.slice(0, -1);
-
-            // Pad with nulls for last month + future months
-            const paddedData = [...trimmedData, ...Array(futureMonths.length + 1).fill(null)];
-
             return {
                 label: product,
-                data: paddedData,
+                data: actualData,
                 borderColor: color,
                 backgroundColor: `${color}1A`, // Lighter fill
                 tension: 0.4,
                 fill: true,
-                spanGaps: false // Don't connect actual to forecast
-            };
-        });
-
-        // Create forecast datasets (dashed lines)
-        const forecastDatasets = products.map((product, index) => {
-            const color = ['#667eea', '#764ba2', '#f093fb', '#f5576c', '#4ade80', '#fbbf24', '#ef4444', '#22c55e'][index % 8];
-            const actualData = months.map(month => monthlyByProduct[month]?.[product] || 0);
-
-            // Simple forecasting: average of last 3 months
-            const last3Months = actualData.slice(-3).filter(v => v > 0);
-            const avgLast3 = last3Months.length > 0 ? _.mean(last3Months) : 0;
-
-            // Calculate trend (linear growth/decline)
-            let trend = 0;
-            if (last3Months.length >= 2) {
-                const firstHalf = _.mean(last3Months.slice(0, Math.floor(last3Months.length / 2)));
-                const secondHalf = _.mean(last3Months.slice(Math.floor(last3Months.length / 2)));
-                trend = secondHalf - firstHalf;
-            }
-
-            // Project forward with trend
-            // Start forecast FROM the last actual data point (October) to create smooth transition
-            const forecastData = Array(months.length - 2).fill(null);
-
-            // Connect from October's actual value
-            const lastActualValue = actualData[actualData.length - 2]; // October
-            forecastData.push(lastActualValue); // Start at October
-
-            // Project Nov, Dec, Jan, Feb using the 3-month average + trend
-            const forecastBaseline = avgLast3 > 0 ? avgLast3 : lastActualValue;
-
-            for (let i = 0; i <= futureMonths.length; i++) {
-                const projected = Math.max(0, forecastBaseline + (trend * i * 0.5)); // Dampen trend by 50%
-                forecastData.push(projected);
-            }
-
-            return {
-                label: `${product} (Forecast)`,
-                data: forecastData,
-                borderColor: color,
-                backgroundColor: `${color}00`, // Transparent fill
-                borderDash: [5, 5], // Dashed line
-                borderWidth: 2,
-                tension: 0.4,
-                fill: false,
-                pointRadius: 0, // No points on forecast line
-                pointHoverRadius: 0
+                spanGaps: false
             };
         });
 
@@ -1805,8 +1741,8 @@ _Report generated on ${new Date().toISOString().slice(0,10)}_`);
         charts.monthlyTrend = new Chart(ctx, {
             type: 'line',
             data: {
-                labels: allMonths.map(m => parseAsLocalDate(m).toLocaleDateString('en-US', { month: 'short', year: '2-digit' })),
-                datasets: [...actualDatasets, ...forecastDatasets]
+                labels: months.map(m => parseAsLocalDate(m).toLocaleDateString('en-US', { month: 'short', year: '2-digit' })),
+                datasets: actualDatasets
             },
             options: {
                 responsive: true,
