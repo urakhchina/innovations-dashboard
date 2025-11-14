@@ -1299,12 +1299,12 @@ _Report generated on ${new Date().toISOString().slice(0,10)}_`);
             // Filter by UPC instead of product name (product names have inconsistent formatting)
             // Note: Convert UPC to string because Papa Parse dynamicTyping may convert to number
             // First, normalize all UPCs to 12-digit strings with leading zeros (fixes dynamicTyping stripping leading zeros)
-            detailedData = detailedData.map(d => ({
+            const normalizedDetailedData = detailedData.map(d => ({
                 ...d,
                 upc_item_code_norm12: String(d.upc_item_code_norm12 || '').padStart(12, '0')
             }));
 
-            let masterData = detailedData.filter(d =>
+            let masterData = normalizedDetailedData.filter(d =>
                 d.year === 2025 && innovationUPCs.includes(d.upc_item_code_norm12)
             );
 
