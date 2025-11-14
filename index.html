@@ -60,6 +60,7 @@
         .badge-red   { background: rgba(220, 38, 38, 0.18); color: #fecaca; padding: 2px 6px; border-radius: 8px; }
         .badge-amber { background: rgba(245, 158, 11, 0.18); color: #fde68a; padding: 2px 6px; border-radius: 8px; }
         .badge-green { background: rgba(16, 185, 129, 0.18); color: #a7f3d0; padding: 2px 6px; border-radius: 8px; }
+        .badge-gray  { background: rgba(156, 163, 175, 0.18); color: #d1d5db; padding: 2px 6px; border-radius: 8px; }
 
         
         .dashboard-header .subtitle {
@@ -994,8 +995,21 @@
         dashboardData.planTargets = planTargetsMaybe || null;
         dashboardData.top10 = top10Maybe || [];
         dashboardData.launches = launchesMaybe || [];
+        // Store both the risk map (for quick lookup) and full churn data (for detailed metrics)
         dashboardData.riskByAccount = (churnMaybe || []).reduce((acc, r) => {
         acc[String(r.account_id)] = Number(r.risk_prob_reorder_60d);
+        return acc;
+        }, {});
+        dashboardData.churnDetails = (churnMaybe || []).reduce((acc, r) => {
+        acc[String(r.account_id)] = {
+            risk: Number(r.risk_prob_reorder_60d),
+            velocity_trend: Number(r.velocity_trend) || 1.0,
+            days_into_cycle: Number(r.days_into_cycle) || 0,
+            days_since_last: Number(r.days_since_last) || 0,
+            median_interval: Number(r.median_interval_recent5) || 0,
+            is_severely_overdue: Number(r.is_severely_overdue) || 0,
+            is_high_frequency: Number(r.is_high_frequency) || 0,
+        };
         return acc;
         }, {});
 
@@ -2845,6 +2859,7 @@ function createWeeklyVelocity() {
                 else if (daysSinceLast > 60) status = "At-Risk";
                 else if (paidInvoices === 1) status = "New";
 
+                const churnData = dashboardData.churnDetails?.[String(accountCode)] ?? null;
                 return {
                     accountCode,
                     distributors: _.uniq(sortedInvoices.map(i => i.distributor)).join(', '),
@@ -2858,7 +2873,10 @@ function createWeeklyVelocity() {
                     lastPurchase: lastPurchase.toLocaleDateString('en-US'),
                     daysSinceLast,
                     status,
-                    risk_prob_60d: dashboardData.riskByAccount?.[String(accountCode)] ?? null
+                    risk_prob_60d: dashboardData.riskByAccount?.[String(accountCode)] ?? null,
+                    velocity_trend: churnData?.velocity_trend ?? null,
+                    days_into_cycle: churnData?.days_into_cycle ?? null,
+                    median_interval: churnData?.median_interval ?? null
                 };
             })
             .orderBy('revenueYTD', 'desc')
@@ -3005,13 +3023,17 @@ function createWeeklyVelocity() {
                     const unitsYTD = _.sumBy(acctInvoices, 'units');
                     const lastPurchase = _.maxBy(acctInvoices, 'posting_date').posting_date;
                     const daysSinceLast = Math.round((today - lastPurchase) / (1000 * 60 * 60 * 24));
+                    const churnData = dashboardData.churnDetails?.[String(accountCode)] ?? null;
                     return {
                      accountCode, revenueYTD, unitsYTD,
                      paidInvoices: acctInvoices.length,
                      aov: revenueYTD / acctInvoices.length,
                      lastPurchase: lastPurchase.toLocaleDateString('en-US'),
                      daysSinceLast,
-                     risk_prob_60d: dashboardData.riskByAccount?.[String(accountCode)] ?? null
+                     risk_prob_60d: dashboardData.riskByAccount?.[String(accountCode)] ?? null,
+                     velocity_trend: churnData?.velocity_trend ?? null,
+                     days_into_cycle: churnData?.days_into_cycle ?? null,
+                     median_interval: churnData?.median_interval ?? null
                    };
                 })
                 .orderBy('revenueYTD', 'desc')
@@ -3031,6 +3053,7 @@ function createWeeklyVelocity() {
                             <th>AOV (Invoice)</th>
                             <th>Last Purchase</th>
                             <th>Days Since Last</th>
+                            <th>Velocity Trend</th>
                             <th>At-Risk Prob (≤60d)</th>
                         </tr>
                     </thead>
@@ -3043,6 +3066,7 @@ function createWeeklyVelocity() {
                                 <td>$${acc.aov.toFixed(2)}</td>
                                 <td>${acc.lastPurchase}</td>
                                 <td>${acc.daysSinceLast}</td>
+                                <td>${formatVelocityTrend(acc.velocity_trend)}</td>
                                 <td>${formatRiskBadge(acc.risk_prob_60d)}</td>
                             </tr>
                         `).join('')}
@@ -3060,6 +3084,42 @@ function createWeeklyVelocity() {
         const pct = (v * 100).toFixed(0) + '%';
         const cls = v >= 0.6 ? 'badge-red' : v >= 0.3 ? 'badge-amber' : 'badge-green';
         return `<span class="${cls}">${pct}</span>`;
+    }
+
+    function formatVelocityTrend(v) {
+        if (v == null || isNaN(v)) return '—';
+
+        // Velocity trend interpretation:
+        // > 1.5 = Accelerating significantly (ordering 50%+ faster)
+        // 1.2-1.5 = Accelerating moderately
+        // 0.8-1.2 = Stable
+        // 0.5-0.8 = Decelerating moderately
+        // < 0.5 = Decelerating significantly (ordering 50%+ slower)
+
+        let icon, text, cls;
+        if (v >= 1.5) {
+            icon = '🟢⬆';
+            text = 'Accelerating';
+            cls = 'badge-green';
+        } else if (v >= 1.2) {
+            icon = '🟢↗';
+            text = 'Faster';
+            cls = 'badge-green';
+        } else if (v >= 0.8) {
+            icon = '⚪➡';
+            text = 'Stable';
+            cls = 'badge-gray';
+        } else if (v >= 0.5) {
+            icon = '🟡↘';
+            text = 'Slower';
+            cls = 'badge-amber';
+        } else {
+            icon = '🔴⬇';
+            text = 'Decelerating';
+            cls = 'badge-red';
+        }
+
+        return `<span class="${cls}" title="Velocity: ${v.toFixed(2)}x">${icon} ${text}</span>`;
     }
 
 
@@ -3204,6 +3264,7 @@ function populateTables() {
                     <th>SKU Breadth</th>
                     <th>Days Since Last</th>
                     <th>First Purchase</th>
+                    <th>Velocity Trend</th>
                     <th>At-Risk Prob (≤60d)</th>
                 </tr>
             </thead>
@@ -3218,6 +3279,7 @@ function populateTables() {
                         <td>${acc.skuBreadth}</td>
                         <td>${acc.daysSinceLast}</td>
                         <td>${acc.firstPurchase}</td>
+                        <td>${formatVelocityTrend(acc.velocity_trend)}</td>
                         <td>${formatRiskBadge(acc.risk_prob_60d)}</td>
                     </tr>
                 `).join('')}

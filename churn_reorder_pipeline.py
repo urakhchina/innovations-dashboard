@@ -508,7 +508,25 @@ def export_latest_predictions(inv: pd.DataFrame, model_bundle, splits: DataSplit
     else:
         probs = model.predict_proba(X_latest)[:,1]
 
-    out = latest_feats[["account_id","asof_date"]].copy()
+    # Export predictions with diagnostic features for dashboard visualization
+    diagnostic_cols = [
+        "account_id",
+        "asof_date",
+        "days_since_last",
+        "median_interval_recent5",
+        "median_interval_180d",
+        "days_into_cycle",
+        "velocity_trend",
+        "orders_30d",
+        "orders_90d",
+        "orders_180d",
+        "is_severely_overdue",
+        "is_high_frequency",
+    ]
+
+    # Only include columns that exist in latest_feats
+    available_cols = [c for c in diagnostic_cols if c in latest_feats.columns]
+    out = latest_feats[available_cols].copy()
     out["risk_prob_reorder_{}d".format(cfg.horizon_days)] = probs
     out = out.sort_values("risk_prob_reorder_{}d".format(cfg.horizon_days), ascending=False)
 
