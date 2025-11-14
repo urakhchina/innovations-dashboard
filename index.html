@@ -529,15 +529,52 @@
             </div>
           </div>
 
-        <div id="aiReportBox" style="margin-top:12px;background:rgba(255,255,255,0.03);border-radius:10px;padding:12px;">
-            <div style="display:flex;gap:8px;align-items:center;justify-content:space-between;flex-wrap:wrap;">
-              <div style="font-weight:600;">Comprehensive AI Report</div>
-              <div>
-                <button id="btnGenerateAIReport" style="padding:6px 10px;border-radius:8px;">Generate report</button>
-                <button id="btnDownloadAIReport" style="padding:6px 10px;border-radius:8px;opacity:0.7;" disabled>Download .md</button>
+        <div id="aiReportBox" style="margin-top:12px;background:rgba(255,255,255,0.03);border-radius:10px;padding:16px;">
+            <!-- Header -->
+            <div style="display:flex;gap:8px;align-items:center;justify-content:space-between;flex-wrap:wrap;margin-bottom:12px;">
+              <div style="font-weight:600;font-size:1.1em;">📊 Comprehensive Analytics Report</div>
+              <div style="display:flex;gap:6px;">
+                <button id="btnGenerateAIReport" style="padding:8px 14px;border-radius:8px;background:#667eea;color:white;border:none;cursor:pointer;font-weight:500;">Generate Report</button>
+                <button id="btnCopyAIReport" style="padding:8px 14px;border-radius:8px;opacity:0.7;" disabled>📋 Copy</button>
+                <button id="btnDownloadAIReport" style="padding:8px 14px;border-radius:8px;opacity:0.7;" disabled>⬇ Download .md</button>
               </div>
             </div>
-            <textarea id="aiReportOutput" rows="14" style="margin-top:8px;width:100%;border-radius:8px;padding:10px;background:rgba(0,0,0,0.35);color:#cfd6e4;border:1px solid rgba(255,255,255,0.08);" placeholder="Click Generate to build the report..."></textarea>
+
+            <!-- Customization Options -->
+            <div style="display:flex;gap:16px;margin-bottom:12px;padding:12px;background:rgba(0,0,0,0.2);border-radius:8px;flex-wrap:wrap;">
+              <div style="flex:1;min-width:200px;">
+                <div style="font-size:0.85em;color:#a0a0a0;margin-bottom:4px;">Include Sections:</div>
+                <div style="display:flex;flex-wrap:wrap;gap:8px;">
+                  <label style="display:flex;align-items:center;gap:4px;cursor:pointer;">
+                    <input type="checkbox" id="includeExecutive" checked style="cursor:pointer;">
+                    <span style="font-size:0.9em;">Executive Summary</span>
+                  </label>
+                  <label style="display:flex;align-items:center;gap:4px;cursor:pointer;">
+                    <input type="checkbox" id="includeChurn" checked style="cursor:pointer;">
+                    <span style="font-size:0.9em;">Churn Risk</span>
+                  </label>
+                  <label style="display:flex;align-items:center;gap:4px;cursor:pointer;">
+                    <input type="checkbox" id="includePerformers" checked style="cursor:pointer;">
+                    <span style="font-size:0.9em;">Top/Bottom Performers</span>
+                  </label>
+                  <label style="display:flex;align-items:center;gap:4px;cursor:pointer;">
+                    <input type="checkbox" id="includeFreeFill" checked style="cursor:pointer;">
+                    <span style="font-size:0.9em;">Free Fill Analysis</span>
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            <!-- Output Area -->
+            <textarea id="aiReportOutput" rows="16" style="width:100%;border-radius:8px;padding:12px;background:rgba(0,0,0,0.35);color:#cfd6e4;border:1px solid rgba(255,255,255,0.08);font-family:monospace;font-size:0.9em;line-height:1.5;" placeholder="Click 'Generate Report' to create a comprehensive markdown report with all dashboard insights..."></textarea>
+
+            <!-- Preview Toggle -->
+            <div style="margin-top:8px;display:flex;justify-content:space-between;align-items:center;">
+              <div style="font-size:0.85em;color:#a0a0a0;">
+                <span id="reportStats"></span>
+              </div>
+              <button id="btnPreviewReport" style="padding:6px 12px;border-radius:6px;font-size:0.85em;opacity:0.7;" disabled>👁 Preview HTML</button>
+            </div>
           </div>
 
           <!-- Free Fill Reorder Analysis Section -->
@@ -746,6 +783,187 @@
             const asOf = asOfDateFromDetailed();
             const asOfStr = asOf ? asOf.toISOString().slice(0,10) : '—';
 
+            // Check which sections to include
+            const includeExecutive = document.getElementById('includeExecutive')?.checked ?? true;
+            const includeChurn = document.getElementById('includeChurn')?.checked ?? true;
+            const includePerformers = document.getElementById('includePerformers')?.checked ?? true;
+            const includeFreeFill = document.getElementById('includeFreeFill')?.checked ?? true;
+
+            const sections = [];
+
+            // === EXECUTIVE SUMMARY ===
+            if (includeExecutive) {
+                const ytdRevenue = _.sumBy(dashboardData.detailed, d => Number(d.revenue) || 0);
+                const ytdUnits = _.sumBy(dashboardData.detailed, d => Number(d.quantity) || 0);
+                const totalDoors = new Set(dashboardData.detailed.map(d => d.canonical_code)).size;
+                const totalInvoices = _.chain(dashboardData.detailed)
+                    .groupBy(d => `${d.distributor}-${d.canonical_code}-${d.ship_to_code}-${d.posting_date}`)
+                    .filter(lines => _.sumBy(lines, 'revenue') > 0)
+                    .value().length;
+                const avgInvoiceSize = totalInvoices > 0 ? ytdRevenue / totalInvoices : 0;
+
+                sections.push(`# 📊 Innovations Report — Comprehensive Analytics
+**As of:** ${asOfStr}
+
+---
+
+## 🎯 Executive Summary
+
+> **Year-to-Date Performance Snapshot**
+
+| Metric | Value |
+|--------|------:|
+| **Total Revenue** | **$${ytdRevenue.toLocaleString(undefined, {minimumFractionDigits: 0, maximumFractionDigits: 0})}** |
+| **Total Units Sold** | **${ytdUnits.toLocaleString()}** |
+| **Active Doors** | **${totalDoors.toLocaleString()}** |
+| **Paid Invoices** | **${totalInvoices.toLocaleString()}** |
+| **Avg Invoice Size** | **$${avgInvoiceSize.toLocaleString(undefined, {minimumFractionDigits: 0, maximumFractionDigits: 0})}** |
+
+---`);
+            }
+
+            // === CHURN RISK SECTION ===
+            if (includeChurn && dashboardData.churnDetails) {
+                const atRiskAccounts = _.chain(Object.entries(dashboardData.churnDetails))
+                    .map(([accountId, details]) => ({
+                        accountId,
+                        risk: details.risk,
+                        velocityTrend: details.velocity_trend,
+                        daysInCycle: details.days_into_cycle,
+                        daysSinceLast: details.days_since_last,
+                        medianInterval: details.median_interval
+                    }))
+                    .filter(a => a.risk >= 0.5)
+                    .orderBy(['risk'], ['desc'])
+                    .take(15)
+                    .value();
+
+                if (atRiskAccounts.length > 0) {
+                    const riskTable = [
+                        '| Account | Risk % | Days Since Last | Expected Interval | Overdue | Velocity Trend |',
+                        '|---------|-------:|----------------:|------------------:|--------:|---------------:|',
+                        ...atRiskAccounts.map(a => {
+                            const overdue = a.medianInterval > 0 ? (a.daysInCycle).toFixed(1) + 'x' : '—';
+                            const velocityEmoji = a.velocityTrend >= 1.2 ? '🟢' : a.velocityTrend >= 0.8 ? '⚪' : '🔴';
+                            return `| ${mdEscape(a.accountId)} | **${(a.risk * 100).toFixed(0)}%** | ${a.daysSinceLast.toFixed(0)}d | ${a.medianInterval.toFixed(0)}d | ${overdue} | ${velocityEmoji} ${a.velocityTrend.toFixed(2)}x |`;
+                        })
+                    ].join('\n');
+
+                    sections.push(`## ⚠️ Churn Risk Analysis
+
+> **Top At-Risk Accounts** (≥50% probability of no reorder within 60 days)
+
+${riskTable}
+
+**Key Indicators:**
+- 🟢 **Green velocity** = Ordering faster (accelerating)
+- ⚪ **Gray velocity** = Stable ordering pattern
+- 🔴 **Red velocity** = Ordering slower (decelerating)
+- **Overdue >2.0x** = Severely at risk
+
+---`);
+                }
+            }
+
+            // === TOP/BOTTOM PERFORMERS ===
+            if (includePerformers) {
+                // Top 5 Products
+                const productPerf = _.chain(dashboardData.detailed)
+                    .groupBy('product_label')
+                    .map((lines, product) => ({
+                        product,
+                        revenue: _.sumBy(lines, 'revenue'),
+                        units: _.sumBy(lines, 'quantity')
+                    }))
+                    .orderBy(['revenue'], ['desc'])
+                    .value();
+
+                const top5Products = _.take(productPerf, 5);
+                const bottom5Products = _.takeRight(productPerf, 5).reverse();
+
+                const topProductTable = [
+                    '| Product | Revenue | Units |',
+                    '|---------|--------:|------:|',
+                    ...top5Products.map(p => `| ${mdEscape(p.product)} | $${p.revenue.toLocaleString(undefined, {minimumFractionDigits: 0, maximumFractionDigits: 0})} | ${p.units.toLocaleString()} |`)
+                ].join('\n');
+
+                const bottomProductTable = [
+                    '| Product | Revenue | Units |',
+                    '|---------|--------:|------:|',
+                    ...bottom5Products.map(p => `| ${mdEscape(p.product)} | $${p.revenue.toLocaleString(undefined, {minimumFractionDigits: 0, maximumFractionDigits: 0})} | ${p.units.toLocaleString()} |`)
+                ].join('\n');
+
+                // Top 5 Distributors
+                const distPerf = _.chain(dashboardData.detailed)
+                    .groupBy('distributor')
+                    .map((lines, distributor) => ({
+                        distributor,
+                        revenue: _.sumBy(lines, 'revenue'),
+                        doors: new Set(lines.map(l => l.canonical_code)).size
+                    }))
+                    .orderBy(['revenue'], ['desc'])
+                    .take(5)
+                    .value();
+
+                const topDistTable = [
+                    '| Distributor | Revenue | Active Doors |',
+                    '|-------------|--------:|-------------:|',
+                    ...distPerf.map(d => `| ${mdEscape(d.distributor)} | $${d.revenue.toLocaleString(undefined, {minimumFractionDigits: 0, maximumFractionDigits: 0})} | ${d.doors.toLocaleString()} |`)
+                ].join('\n');
+
+                sections.push(`## 🏆 Top Performers
+
+### 🥇 Top 5 Products by Revenue
+${topProductTable}
+
+### 📈 Top 5 Distributors by Revenue
+${topDistTable}
+
+---
+
+## 📉 Bottom Performers
+
+### ⚠️ Bottom 5 Products by Revenue
+${bottomProductTable}
+
+> **Note:** Focus on whether bottom performers need marketing support or should be phased out.
+
+---`);
+            }
+
+            // === FREE FILL ANALYSIS ===
+            if (includeFreeFill) {
+                const freeFillLines = dashboardData.detailed.filter(d => String(d.reason_for_no_charge || '').toLowerCase().includes('free fill'));
+                const freeFillRevenue = _.sumBy(freeFillLines, d => Number(d.revenue) || 0);
+                const freeFillUnits = _.sumBy(freeFillLines, d => Number(d.quantity) || 0);
+                const freeFillAccounts = new Set(freeFillLines.map(d => d.canonical_code)).size;
+
+                // Conversion: accounts with free fill who also have paid invoices
+                const freeFillAccountIds = new Set(freeFillLines.map(d => d.canonical_code));
+                const paidLines = dashboardData.detailed.filter(d => Number(d.revenue) > 0);
+                const convertedAccounts = new Set(paidLines.filter(d => freeFillAccountIds.has(d.canonical_code)).map(d => d.canonical_code)).size;
+                const conversionRate = freeFillAccounts > 0 ? (convertedAccounts / freeFillAccounts) * 100 : 0;
+
+                sections.push(`## 🎁 Free Fill Analysis
+
+> **Free Fill Program Performance**
+
+| Metric | Value |
+|--------|------:|
+| **Free Fill Revenue** | $${freeFillRevenue.toLocaleString(undefined, {minimumFractionDigits: 0, maximumFractionDigits: 0})} |
+| **Free Fill Units** | ${freeFillUnits.toLocaleString()} |
+| **Free Fill Accounts** | ${freeFillAccounts.toLocaleString()} |
+| **Converted to Paid** | ${convertedAccounts.toLocaleString()} |
+| **Conversion Rate** | **${conversionRate.toFixed(1)}%** |
+
+**Interpretation:**
+- ${conversionRate >= 50 ? '🟢 **Strong conversion** — Free fill is driving paid orders' : conversionRate >= 30 ? '🟡 **Moderate conversion** — Some accounts converting to paid' : '🔴 **Low conversion** — Consider strategy adjustment'}
+- ${freeFillAccounts > 0 ? `Average units per free fill account: ${(freeFillUnits / freeFillAccounts).toFixed(1)}` : 'No free fill activity'}
+
+---`);
+            }
+
+            // === ORIGINAL SECTIONS (Always included) ===
             // YEP / Plan
             const planRows = extractYEPPlanRows();
             const planTable = [
@@ -753,6 +971,11 @@
                 '|---|---:|---:|---:|',
                 ...planRows.map(r => `| ${mdEscape(r.product)} | ${r.fyPlan!=null ? r.fyPlan.toLocaleString() : '—'} | ${r.yep.toLocaleString()} | ${r.pace!=null ? (r.pace*100).toFixed(0)+'%' : '—'} |`)
             ].join('\n');
+
+            sections.push(`## 📅 Year-End Projection vs Plan
+${planTable}
+
+---`);
 
             // Weekly Velocity (Overall + Top 3 Distributor + Top 3 Rep)
             const overall = buildWeeklyData('overall');
@@ -788,59 +1011,65 @@
             const distNarr = narrativeFor(dist.byKey, dist.allWeeks, k => k);
             const repNarr  = narrativeFor(rep.byKey,  rep.allWeeks,  k => (salesRepMap[String(k)] || 'Unassigned'));
 
+            sections.push(`## 📊 Weekly Velocity — Overall
+${overallNarr}
+
+---
+
+## 📊 Weekly Velocity — Top Distributors
+${distNarr || '_No distributor data_'}
+
+---
+
+## 📊 Weekly Velocity — Top Sales Reps
+${repNarr || '_No rep data_'}
+
+---`);
+
             // Cohort
             const { months, byCohort, avg30, avg60, avg90 } = buildCohortData();
 
-            const md = [
-            `# Innovations Report (AI)
-            **As of:** ${asOfStr}
+            sections.push(`## 🔄 Cohort Retention (Accounts)
 
-            ---
+Each cohort = accounts (canonical_code) with a **first** paid invoice in that month; lines show % placing a **second** order within 30/60/90 days.
 
-            ## Year-End Projection vs Plan
-            ${planTable}
+- Average reorder ≤30 days: **${isFinite(avg30)?avg30.toFixed(0):'—'}%**
+- Average reorder ≤60 days: **${isFinite(avg60)?avg60.toFixed(0):'—'}%**
+- Average reorder ≤90 days: **${isFinite(avg90)?avg90.toFixed(0):'—'}%**
 
-            ---
+**Interpretation:**
+${avg30 >= 40 ? '🟢 Strong early retention' : avg30 >= 20 ? '🟡 Moderate early retention' : '🔴 Weak early retention — consider onboarding improvements'}
 
-            ## Weekly Velocity — Overall
-            ${overallNarr}
+Monotonic curves are expected (≤30 ≥ ≤60 ≥ ≤90). Higher early percentages indicate faster loyalty formation.
 
-            ---
+---
 
-            ## Weekly Velocity — Top Distributors
-            ${distNarr || '_No distributor data_'}
-            ---
+_Report generated on ${new Date().toISOString().slice(0,10)} • Powered by Claude Code_`);
 
-            ## Weekly Velocity — Top Sales Reps
-            ${repNarr || '_No rep data_'}
-            ---
-
-            ## Cohort Retention (Accounts)
-            Each cohort = accounts (canonical_code) with a **first** paid invoice in that month; lines show % placing a **second** order within 30/60/90 days.
-
-            - Average reorder ≤30 days: ${isFinite(avg30)?avg30.toFixed(0):'—'}%
-            - Average reorder ≤60 days: ${isFinite(avg60)?avg60.toFixed(0):'—'}%
-            - Average reorder ≤90 days: ${isFinite(avg90)?avg90.toFixed(0):'—'}%
-
-            Monotonic curves are expected (≤30 ≥ ≤60 ≥ ≤90). Higher early percentages indicate faster loyalty formation.
-            `
-            ].join('\n');
-
-            return md;
+            return sections.join('\n\n');
             }
 
             function attachAIReportHandlers() {
             const btnGen = document.getElementById('btnGenerateAIReport');
+            const btnCopy = document.getElementById('btnCopyAIReport');
             const btnDl  = document.getElementById('btnDownloadAIReport');
             const out    = document.getElementById('aiReportOutput');
-            if (!btnGen || !btnDl || !out) return;
+            if (!btnGen || !btnCopy || !btnDl || !out) return;
 
             btnGen.onclick = async () => {
                 try {
                 const md = await generateAIReportMarkdown();
                 out.value = md;
+
+                // Enable Copy and Download buttons
+                btnCopy.disabled = false;
+                btnCopy.style.opacity = 1;
+                btnCopy.style.cursor = 'pointer';
                 btnDl.disabled = false;
                 btnDl.style.opacity = 1;
+                btnDl.style.cursor = 'pointer';
+
+                // Update Download button handler
                 btnDl.onclick = () => {
                     const blob = new Blob([md], {type:'text/markdown'});
                     const asOf = asOfDateFromDetailed();
@@ -851,9 +1080,28 @@
                     a.click();
                     URL.revokeObjectURL(a.href);
                 };
+
+                // Update Copy button handler
+                btnCopy.onclick = async () => {
+                    try {
+                        await navigator.clipboard.writeText(md);
+                        const originalText = btnCopy.innerHTML;
+                        btnCopy.innerHTML = '✓ Copied!';
+                        btnCopy.style.background = '#10b981';
+                        setTimeout(() => {
+                            btnCopy.innerHTML = originalText;
+                            btnCopy.style.background = '';
+                        }, 2000);
+                    } catch (err) {
+                        console.error('Failed to copy:', err);
+                        alert('Failed to copy to clipboard. Please select and copy the text manually.');
+                    }
+                };
                 } catch (e) {
                 console.error('AI report generation failed:', e);
                 out.value = `Error generating report: ${e.message || e}`;
+                btnCopy.disabled = true;
+                btnCopy.style.opacity = 0.7;
                 btnDl.disabled = true;
                 btnDl.style.opacity = 0.7;
                 }
