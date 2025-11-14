@@ -2691,7 +2691,7 @@ function createFreeFillByTypeTable() {
       const pace = (fyPlan && fyPlan > 0) ? (yePace / fyPlan) : null;
       return { name, fyPlan, yePace, pace };
     })
-    .sortBy(x => x.name)
+    .orderBy(['yePace'], ['desc'])
     .value();
 
   const rows = byProduct.map(r => `
