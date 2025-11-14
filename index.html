@@ -869,8 +869,8 @@ ${riskTable}
             if (includePerformers) {
                 // Top 5 Products
                 const productPerf = _.chain(dashboardData.detailed)
-                    .filter(d => d.product_label && String(d.product_label).trim() !== '')
-                    .groupBy('product_label')
+                    .filter(d => d.product_name && String(d.product_name).trim() !== '')
+                    .groupBy('product_name')
                     .map((lines, product) => ({
                         product,
                         revenue: _.sumBy(lines, 'revenue'),
