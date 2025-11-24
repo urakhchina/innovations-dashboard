@@ -1739,10 +1739,28 @@ _Report generated on ${new Date().toISOString().slice(0,10)}_`);
         const months = Object.keys(monthlyByProduct).sort();
         const products = newProductsList;
 
+        // Find each product's first month with sales
+        const productFirstMonth = {};
+        products.forEach(product => {
+            for (const month of months) {
+                if (monthlyByProduct[month]?.[product] > 0) {
+                    productFirstMonth[product] = month;
+                    break;
+                }
+            }
+        });
+
         // Create actual data datasets only (no forecasts until we have more data)
         const actualDatasets = products.map((product, index) => {
             const color = ['#667eea', '#764ba2', '#f093fb', '#f5576c', '#4ade80', '#fbbf24', '#ef4444', '#22c55e'][index % 8];
-            const actualData = months.map(month => monthlyByProduct[month]?.[product] || 0);
+            const firstMonth = productFirstMonth[product];
+            // Use null for months before product launch, 0 for months after launch with no sales
+            const actualData = months.map(month => {
+                if (!firstMonth || month < firstMonth) {
+                    return null; // Product not launched yet - don't show line
+                }
+                return monthlyByProduct[month]?.[product] || 0;
+            });
 
             return {
                 label: product,
