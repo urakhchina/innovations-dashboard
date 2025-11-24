@@ -5,6 +5,27 @@ print("=" * 80)
 print("GENERATING Q2-Q3 DASHBOARD DATA (MAY-OCTOBER)")
 print("=" * 80)
 
+# Load catalog for UPC mapping
+print("\nLoading iHerb catalog for UPC mapping...")
+catalog_df = pd.read_csv('/Users/natasha/Downloads/iherb_catalog.csv')
+catalog_df = catalog_df.rename(columns={catalog_df.columns[0]: 'PartNumber', catalog_df.columns[1]: 'UPCCode', catalog_df.columns[2]: 'IrwinItem'})
+
+# Create Irwin item -> UPC mapping
+upc_mapping = {}
+for _, row in catalog_df.iterrows():
+    irwin_item = str(row['IrwinItem']).strip()
+    upc = str(row['UPCCode']).strip()
+    if irwin_item and irwin_item != 'nan' and upc and upc != 'nan':
+        # Format UPC as 12-digit string
+        try:
+            upc_int = int(float(upc))
+            upc_str = str(upc_int).zfill(12)
+            upc_mapping[irwin_item] = upc_str
+        except:
+            pass
+
+print(f"✓ Created UPC mapping for {len(upc_mapping)} products")
+
 months = ['May', 'June', 'July', 'August', 'September', 'October']
 months_data = {}
 
@@ -30,9 +51,11 @@ for month in months:
         else:
             accuracy = 0
 
+        irwin_item = str(row['IrwinItem'])
         products.append({
-            'irwin_item': str(row['IrwinItem']),
+            'irwin_item': irwin_item,
             'product_name': str(row['Description']),
+            'upc': upc_mapping.get(irwin_item, ''),
             'units_planned': round(forecast_val, 2),
             'units_actual': round(actual_val, 2),
             'variance': round(float(row['Variance']), 2) if pd.notna(row['Variance']) else 0,

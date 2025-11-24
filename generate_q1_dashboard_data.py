@@ -4,6 +4,26 @@ import math
 
 print("Generating Q1 2025 dashboard data from forecast vs actuals...")
 
+# Load catalog for UPC mapping
+print("\nLoading iHerb catalog for UPC mapping...")
+catalog_df = pd.read_csv('/Users/natasha/Downloads/iherb_catalog.csv')
+catalog_df = catalog_df.rename(columns={catalog_df.columns[0]: 'PartNumber', catalog_df.columns[1]: 'UPCCode', catalog_df.columns[2]: 'IrwinItem'})
+
+# Create Irwin item -> UPC mapping
+upc_mapping = {}
+for _, row in catalog_df.iterrows():
+    irwin_item = str(row['IrwinItem']).strip()
+    upc = str(row['UPCCode']).strip()
+    if irwin_item and irwin_item != 'nan' and upc and upc != 'nan':
+        try:
+            upc_int = int(float(upc))
+            upc_str = str(upc_int).zfill(12)
+            upc_mapping[irwin_item] = upc_str
+        except:
+            pass
+
+print(f"✓ Created UPC mapping for {len(upc_mapping)} products")
+
 # Read the Q1 forecast vs actuals CSV
 df = pd.read_csv('/Users/natasha/Downloads/q1_2025_forecast_vs_actuals_iherb.csv')
 
@@ -33,10 +53,11 @@ for month in df['month'].unique():
         else:
             accuracy = 0
 
+        irwin_item = row['irwin_item'] if pd.notna(row['irwin_item']) else ''
         product = {
             'product_name': row['product_name'] if pd.notna(row['product_name']) else 'Unknown',
-            'sku': row['irwin_item'] if pd.notna(row['irwin_item']) else 'N/A',
-            'upc': 'N/A',  # We don't have UPC in this dataset yet
+            'irwin_item': irwin_item,
+            'upc': upc_mapping.get(str(irwin_item), ''),
             'distributor': 'iHerb',
             'forecast': forecast_val,
             'actual': actual_val,
