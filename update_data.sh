@@ -24,6 +24,10 @@ fi
 # Step 1: Pull data from RDS
 echo "Step 1: Pulling fresh data from AWS RDS..."
 ./scripts/pull_data.sh
+
+# Update last_updated timestamp
+echo "{\"timestamp\": \"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"}" > data/last_updated.json
+echo "   ✓ Updated data/last_updated.json"
 echo ""
 
 # Step 2: Run analytics pipelines (with conda environment)
@@ -52,7 +56,7 @@ echo ""
 read -p "Commit and push these changes? (y/n) " -n 1 -r
 echo ""
 if [[ $REPLY =~ ^[Yy]$ ]]; then
-  git add data/*.csv outputs/*.csv 2>/dev/null || git add data/*.csv
+  git add data/*.csv data/last_updated.json outputs/*.csv 2>/dev/null || git add data/*.csv data/last_updated.json
   git commit -m "Manual data refresh: $(date '+%Y-%m-%d %H:%M')"
   git push
   echo ""

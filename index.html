@@ -363,6 +363,7 @@
     <div class="dashboard-header">
         <h1>🚀 2025 New Product Launch Analytics Dashboard</h1>
         <div class="subtitle">Executive Performance Metrics & Advanced Analytics</div>
+        <div class="data-timestamp" id="dataTimestamp" style="margin-top: 10px; font-size: 0.85em; color: rgba(255,255,255,0.7);">Data last pulled: Loading...</div>
     </div>
     
     <div class="new-products-banner">
@@ -1231,6 +1232,23 @@ _Report generated on ${new Date().toISOString().slice(0,10)}_`);
         // Initialize dashboard
         async function initializeDashboard() {
         try {
+            // Load and display last updated timestamp
+            fetch('data/last_updated.json')
+                .then(r => r.ok ? r.json() : null)
+                .then(data => {
+                    if (data && data.timestamp) {
+                        const date = new Date(data.timestamp);
+                        document.getElementById('dataTimestamp').textContent =
+                            'Data last pulled: ' + date.toLocaleDateString('en-US', {
+                                year: 'numeric', month: 'long', day: 'numeric',
+                                hour: '2-digit', minute: '2-digit'
+                            });
+                    }
+                })
+                .catch(() => {
+                    document.getElementById('dataTimestamp').textContent = 'Data last pulled: Unknown';
+                });
+
             await runDataDiagnostics(); // You can leave this in or remove it
 
         // Load everything in parallel
